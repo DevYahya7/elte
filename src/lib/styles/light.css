@@ -1,0 +1,111 @@
+body[data-theme="light"] {
+  * {
+    color-scheme: light;
+
+    &::-webkit-scrollbar-thumb {
+      background: rgb(0, 0, 0, 0.2);
+    }
+  }
+
+  --df: rgb(255, 115, 0);
+  --bg: rgb(255, 255, 255);
+  background: var(--bg);
+
+  .cm-activeLineGutter {
+    opacity: 1 !important;
+    color: black;
+  }
+
+  button,
+  input,
+  textarea {
+    /* background: rgb(240, 240, 240); */
+    background: none;
+  }
+
+  .baseBtn:not(.headerSetNav) {
+    &:hover {
+      background-color: var(--df) !important;
+      color: white !important;
+
+      path {
+        stroke: white;
+      }
+
+      svg * {
+        fill: white;
+        stroke: white;
+      }
+    }
+  }
+
+  #openInExternalBtn {
+    * {
+      fill: none !important;
+    }
+    &:hover {
+      * {
+        fill: none !important;
+      }
+    }
+  }
+
+  .active {
+    /* background: rgb(230, 230, 230); */
+    background: rgb(0, 0, 0, 0.07);
+
+    * {
+      /* color: white !important;
+        */
+    }
+  }
+
+  /* main */
+  h1 {
+    color: crimson;
+  }
+
+  .editor {
+    main {
+      .nav {
+        ul {
+          background: rgb(240, 240, 240);
+        }
+
+        .menu {
+          hr {
+            background: rgb(230, 230, 230);
+          }
+        }
+      }
+
+      ul {
+        li {
+          .unsaved {
+            &::before {
+              background: #231a00;
+            }
+          }
+        }
+      }
+
+      #settingsMenu {
+        #themeSelection {
+          ul {
+            /* background: rgb(230, 230, 230); */
+          }
+        }
+      }
+
+      .editorArea {
+        button {
+          background: transparent;
+        }
+      }
+
+      textarea {
+        background: rgb(240, 240, 240);
+      }
+    }
+  }
+}

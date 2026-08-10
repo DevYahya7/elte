@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+.vscode/
+
+# Rust / Tauri build output
+target/
+src-tauri/target/
+
+# Environment & OS files
+.env
+.DS_Store

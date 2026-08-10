@@ -1,0 +1,116 @@
+body[data-theme="dark"] {
+  * {
+    color-scheme: dark;
+
+    &::-webkit-scrollbar-thumb {
+      background: rgb(255, 255, 255, 0.2);
+    }
+  }
+
+  --df: #f78166;
+  --bg: rgb(13, 17, 23);
+
+  background: var(--bg);
+  color: white;
+
+  .cm-activeLineGutter {
+    opacity: 1 !important;
+    color: white;
+  }
+
+  button,
+  input,
+  textarea {
+    /* background: rgb(38, 44, 54); */
+    background: none;
+  }
+
+  .baseBtn {
+    svg * {
+      fill: white;
+      stroke: white;
+    }
+
+    &:hover {
+      background-color: var(--df) !important;
+
+      path {
+        stroke: white;
+      }
+
+      svg * {
+        fill: white;
+        stroke: white;
+      }
+    }
+  }
+
+  #openInExternalBtn {
+    * {
+      fill: none !important;
+    }
+    &:hover {
+      * {
+        fill: none !important;
+      }
+    }
+  }
+
+  .active {
+    /* background: rgb(38, 44, 54); */
+    background: rgb(255, 255, 255, 0.2);
+  }
+
+  /* main */
+  .editor {
+    main {
+      .nav {
+        ul {
+          background: rgb(240, 240, 240);
+        }
+
+        .menu {
+          hr {
+            background: rgb(230, 230, 230);
+          }
+        }
+      }
+
+      ul {
+        li {
+          .unsaved {
+            &::before {
+              background: #ffff;
+            }
+          }
+        }
+      }
+
+      #filesTree {
+        li {
+          svg * {
+            stroke: white;
+          }
+        }
+      }
+
+      #settingsMenu {
+        #themeSelection {
+          ul {
+            /* background: rgb(38, 44, 54); */
+          }
+        }
+      }
+
+      .editorArea {
+        button {
+          background: transparent;
+        }
+      }
+
+      textarea {
+        background: rgb(240, 240, 240);
+      }
+    }
+  }
+}
