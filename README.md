@@ -1,5 +1,7 @@
 # Extremely Light Text Editor
 
+> Note: This text editor has not yet reached stable version 1.0
+
 The ELTE project was done by me for the sole purpose of having a modern, fully functional lightweight text editor.
 
 # sv
