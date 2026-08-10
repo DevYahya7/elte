@@ -1,58 +1,49 @@
-# Extremely Light Text Editor
+# Extremely Light Text Editor (ELTE)
 
-> Note: This text editor has not yet reached stable version 1.0
+> Note: This text editor has not yet reached stable version 1.0.
 
-The ELTE project was done by me for the sole purpose of having a modern, fully functional lightweight text editor.
+ELTE was created for the sole purpose of having a modern, fully functional, and lightweight text editor.
+
+---
 
 ## Features
 
 * Fast and lightweight native desktop performance
+* Code editing powered by CodeMirror
 * Modern UI built with Svelte 5
 
+---
+
+## Tech Stack & Dependencies
+
+* Frontend Framework: Svelte 5 (https://svelte.dev/)
+* Code Editor Engine: CodeMirror 6 (https://codemirror.net/)
+* Desktop Runtime: Tauri & Rust (https://tauri.app/ / https://www.rust-lang.org/)
+
+---
+
 ## Prerequisites
-Before running this project, make sure you have installed:
-* [Node.js](https://nodejs.org/)
-* [Rust](https://www.rust-lang.org/)
 
-# sv
+Before running or building this project, ensure you have installed:
+* Node.js (https://nodejs.org/)
+* Rust (https://www.rust-lang.org/)
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+---
 
-## Creating a project
+## Getting Started
 
-If you're seeing this, you've probably already done this step. Congrats!
+### 1. Install Dependencies
+`npm install`
 
-```sh
-# create a new project
-npx sv create my-app
-```
+### 2. Run in Development Mode
+`npm run tauri dev`
 
-To recreate this project with the same configuration:
+### 3. Build for Production
+`npm run tauri build`
 
-```sh
-# recreate this project
-npx sv@0.17.0 create --template minimal --types ts --install npm ./
-```
+---
 
-## Developing
+## Acknowledgements
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+* CodeMirror (https://codemirror.net/) for providing the extensible code editor core.
+* Svelte & Tauri for the lightweight UI and desktop integration.
