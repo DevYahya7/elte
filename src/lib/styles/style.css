@@ -18,9 +18,6 @@ body {
 
   #container {
     height: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 5px;
   }
 }
 
@@ -28,7 +25,6 @@ button,
 input,
 textarea {
   border-radius: 20px;
-  font-weight: 550;
   border: none;
   padding: 8px 15px;
   outline: none;
@@ -75,7 +71,6 @@ textarea {
     flex-direction: column;
     align-items: center;
     height: 100%;
-    padding-bottom: 50px;
 
     .nav {
       display: flex;
@@ -163,16 +158,26 @@ textarea {
       }
     }
 
+    .editorAreaContainer {
+      display: flex;
+      align-items: center;
+      flex-direction: column;
+      flex: 1;
+      width: 100%;
+      height: 100%;
+    }
+
     .editorArea {
       height: 100%;
-      width: 100%;
       display: flex;
       align-items: center;
       gap: 5px;
+      width: 100%;
 
       .editCnt {
         height: 100%;
         width: 300px !important;
+        padding-bottom: 50px;
       }
 
       #filesTree {
@@ -192,11 +197,19 @@ textarea {
           display: flex;
           align-items: center;
           border-radius: 0 20px 20px 0;
+          opacity: 0.7;
 
           &:hover {
             .close {
               z-index: 1;
               opacity: 1;
+            }
+          }
+
+          &.active {
+            opacity: 1;
+            button {
+              font-weight: 550;
             }
           }
         }

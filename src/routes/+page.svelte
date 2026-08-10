@@ -283,8 +283,6 @@
         ? (activeId -= 1)
         : (activeId = Object.entries(files).length - 1);
     }
-
-    log(mode);
   }
 
   Update();
@@ -353,6 +351,7 @@
 
     activeThemeBtn = appTheme.current;
   });
+
 </script>
 
 <svelte:head>
@@ -485,28 +484,60 @@
           </div>
         </nav>
 
-        <div class="editorArea">
-          <div
-            id="fileTreeContainer"
-            class="editCnt"
-            class:visibleCnt={!expandExplorer}
-          >
-            <ul id="filesTree">
-              {#each Object.entries(files) as [name, path], id}
-                <li class:active={id == activeId}>
-                  <button
-                    data-id={name}
-                    class="navItem"
-                    class:unsaved={unsavedFiles[name]}
-                    onclick={(e) => HandleFileClick(e, id)}
-                    onmousedown={(e) => HandleFileMouseDown(e, name)}
-                    title={`${path}\\${name}`}
-                  >
-                    <div class="fileIcon">
+        <div class="editorAreaContainer">
+          <div class="editorArea">
+            <div
+              id="fileTreeContainer"
+              class="editCnt"
+              class:visibleCnt={!expandExplorer}
+            >
+              <ul id="filesTree">
+                {#each Object.entries(files) as [name, path], id}
+                  <li class:active={id == activeId}>
+                    <button
+                      data-id={name}
+                      class="navItem"
+                      class:unsaved={unsavedFiles[name]}
+                      onclick={(e) => HandleFileClick(e, id)}
+                      onmousedown={(e) => HandleFileMouseDown(e, name)}
+                      title={`${path}\\${name}`}
+                    >
+                      <div class="fileIcon">
+                        <svg
+                          width="18px"
+                          height="18px"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
+                            id="SVGRepo_tracerCarrier"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          ></g><g id="SVGRepo_iconCarrier">
+                            <path
+                              d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
+                              stroke="#000000"
+                              stroke-width="1.416"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            ></path>
+                          </g></svg
+                        >
+                      </div>
+                      <span> {name} </span>
+                    </button>
+                    <button
+                      class="close"
+                      aria-label="close"
+                      onclick={(e) => {
+                        CloseFile(e);
+                      }}
+                      data-name={name}
+                    >
                       <svg
-                        width="18px"
-                        height="18px"
-                        viewBox="0 0 24 24"
+                        width="14px"
+                        height="14px"
+                        viewBox="-0.5 0 25 25"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
                         ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
@@ -515,192 +546,162 @@
                           stroke-linejoin="round"
                         ></g><g id="SVGRepo_iconCarrier">
                           <path
-                            d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
+                            d="M3 21.32L21 3.32001"
                             stroke="#000000"
-                            stroke-width="1.416"
+                            stroke-width="1.5"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          ></path>
+                          <path
+                            d="M3 3.32001L21 21.32"
+                            stroke="#000000"
+                            stroke-width="1.5"
                             stroke-linecap="round"
                             stroke-linejoin="round"
                           ></path>
                         </g></svg
                       >
-                    </div>
-                    <span> {name} </span>
-                  </button>
-                  <button
-                    class="close"
-                    aria-label="close"
-                    onclick={(e) => {
-                      CloseFile(e);
-                    }}
-                    data-name={name}
+                    </button>
+                  </li>
+                {/each}
+              </ul>
+            </div>
+            <div
+              id="settingsMenu"
+              class="editCnt"
+              class:visible={parametres.settingsMenu}
+            >
+              <nav id="themeSelection" class="defaultSettNav">
+                <button
+                  class="baseBtn headerSetNav"
+                  onclick={(e) => {
+                    e.currentTarget.parentElement?.classList.toggle("hide");
+                  }}
+                >
+                  <h3>Themes</h3>
+                  <svg
+                    width="14px"
+                    height="14px"
+                    viewBox="0 0 24 24"
+                    style="fill: none !important;"
+                    xmlns="http://www.w3.org/2000/svg"
+                    ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
+                      id="SVGRepo_tracerCarrier"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></g><g id="SVGRepo_iconCarrier">
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M12 7C12.2652 7 12.5196 7.10536 12.7071 7.29289L19.7071 14.2929C20.0976 14.6834 20.0976 15.3166 19.7071 15.7071C19.3166 16.0976 18.6834 16.0976 18.2929 15.7071L12 9.41421L5.70711 15.7071C5.31658 16.0976 4.68342 16.0976 4.29289 15.7071C3.90237 15.3166 3.90237 14.6834 4.29289 14.2929L11.2929 7.29289C11.4804 7.10536 11.7348 7 12 7Z"
+                        fill="#000000"
+                      ></path>
+                    </g></svg
                   >
-                    <svg
-                      width="14px"
-                      height="14px"
-                      viewBox="-0.5 0 25 25"
-                      fill="none"
-                      xmlns="http://www.w3.org/2000/svg"
-                      ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
-                        id="SVGRepo_tracerCarrier"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      ></g><g id="SVGRepo_iconCarrier">
-                        <path
-                          d="M3 21.32L21 3.32001"
-                          stroke="#000000"
-                          stroke-width="1.5"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        ></path>
-                        <path
-                          d="M3 3.32001L21 21.32"
-                          stroke="#000000"
-                          stroke-width="1.5"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        ></path>
-                      </g></svg
-                    >
-                  </button>
-                </li>
+                </button>
+                <div class="selfList">
+                  <ul id="lightThemes">
+                    <h3>Light Themes</h3>
+                    {#each lightThemes.sort((a: string, b: string) => a.charCodeAt(0) - b.charCodeAt(0)) as theme}
+                      <li>
+                        <div title={theme}>{theme}</div>
+                        <button
+                          onclick={SetSetting}
+                          class="baseBtn"
+                          data-sett="theme"
+                          class:activeTheme={activeThemeBtn == theme}
+                          data-theme={theme}>Set Theme</button
+                        >
+                      </li>
+                    {/each}
+                  </ul>
+                  <ul id="darkThemes">
+                    <h3>Dark Themes</h3>
+                    {#each darkThemes.sort((a: string, b: string) => a.charCodeAt(0) - b.charCodeAt(0)) as theme}
+                      <li>
+                        <div title={theme}>{theme}</div>
+                        <button
+                          onclick={SetSetting}
+                          class="baseBtn"
+                          data-sett="theme"
+                          class:activeTheme={activeThemeBtn == theme}
+                          data-theme={theme}>Set Theme</button
+                        >
+                      </li>
+                    {/each}
+                  </ul>
+                </div>
+              </nav>
+              <nav id="editorSelection" class="defaultSettNav">
+                <button
+                  class="baseBtn headerSetNav"
+                  onclick={(e) => {
+                    e.currentTarget.parentElement?.classList.toggle("hide");
+                  }}
+                >
+                  <h3>Editor</h3>
+                  <svg
+                    width="14px"
+                    height="14px"
+                    viewBox="0 0 24 24"
+                    style="fill: none !important;"
+                    xmlns="http://www.w3.org/2000/svg"
+                    ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
+                      id="SVGRepo_tracerCarrier"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></g><g id="SVGRepo_iconCarrier">
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M12 7C12.2652 7 12.5196 7.10536 12.7071 7.29289L19.7071 14.2929C20.0976 14.6834 20.0976 15.3166 19.7071 15.7071C19.3166 16.0976 18.6834 16.0976 18.2929 15.7071L12 9.41421L5.70711 15.7071C5.31658 16.0976 4.68342 16.0976 4.29289 15.7071C3.90237 15.3166 3.90237 14.6834 4.29289 14.2929L11.2929 7.29289C11.4804 7.10536 11.7348 7 12 7Z"
+                        fill="#000000"
+                      ></path>
+                    </g></svg
+                  >
+                </button>
+                <div class="selfList">
+                  <ul>
+                    <li>
+                      <span>Font Family</span>
+                      <input
+                        type="text"
+                        spellcheck="false"
+                        value={editorViewStyle.fontFamily}
+                        onchange={(e) =>
+                          editorViewStyle.setFontFamily(e.currentTarget.value)}
+                      />
+                    </li>
+                    <li>
+                      <span>Font Size</span>
+                      <input
+                        type="number"
+                        spellcheck="false"
+                        value={parseInt(editorViewStyle.fontSize)}
+                        onchange={(e) =>
+                          editorViewStyle.setFontSize(
+                            Number(e.currentTarget.value),
+                          )}
+                      />
+                    </li>
+                  </ul>
+                </div>
+              </nav>
+            </div>
+            <div class="editors">
+              {#each Object.entries(files) as [name, path], id}
+                <CodeEditor
+                  filename={name}
+                  content={fileContents[name] ?? ""}
+                  isActive={id == activeId}
+                  themeName={editorTheme.current}
+                  onChange={(value) => {
+                    HandleEditorOnChange(name, value);
+                  }}
+                  onFocus={() => (activeId = id)}
+                />
               {/each}
-            </ul>
-          </div>
-          <div
-            id="settingsMenu"
-            class="editCnt"
-            class:visible={parametres.settingsMenu}
-          >
-            <nav id="themeSelection" class="defaultSettNav">
-              <button
-                class="baseBtn headerSetNav"
-                onclick={(e) => {
-                  e.currentTarget.parentElement?.classList.toggle("hide");
-                }}
-              >
-                <h3>Themes</h3>
-                <svg
-                  width="14px"
-                  height="14px"
-                  viewBox="0 0 24 24"
-                  style="fill: none !important;"
-                  xmlns="http://www.w3.org/2000/svg"
-                  ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
-                    id="SVGRepo_tracerCarrier"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  ></g><g id="SVGRepo_iconCarrier">
-                    <path
-                      fill-rule="evenodd"
-                      clip-rule="evenodd"
-                      d="M12 7C12.2652 7 12.5196 7.10536 12.7071 7.29289L19.7071 14.2929C20.0976 14.6834 20.0976 15.3166 19.7071 15.7071C19.3166 16.0976 18.6834 16.0976 18.2929 15.7071L12 9.41421L5.70711 15.7071C5.31658 16.0976 4.68342 16.0976 4.29289 15.7071C3.90237 15.3166 3.90237 14.6834 4.29289 14.2929L11.2929 7.29289C11.4804 7.10536 11.7348 7 12 7Z"
-                      fill="#000000"
-                    ></path>
-                  </g></svg
-                >
-              </button>
-              <div class="selfList">
-                <ul id="lightThemes">
-                  <h3>Light Themes</h3>
-                  {#each lightThemes as theme}
-                    <li>
-                      <div title={theme}>{theme}</div>
-                      <button
-                        onclick={SetSetting}
-                        class="baseBtn"
-                        data-sett="theme"
-                        class:activeTheme={activeThemeBtn == theme}
-                        data-theme={theme}>Set Theme</button
-                      >
-                    </li>
-                  {/each}
-                </ul>
-                <ul id="darkThemes">
-                  <h3>Dark Themes</h3>
-                  {#each darkThemes as theme}
-                    <li>
-                      <div title={theme}>{theme}</div>
-                      <button
-                        onclick={SetSetting}
-                        class="baseBtn"
-                        data-sett="theme"
-                        class:activeTheme={activeThemeBtn == theme}
-                        data-theme={theme}>Set Theme</button
-                      >
-                    </li>
-                  {/each}
-                </ul>
-              </div>
-            </nav>
-            <nav id="editorSelection" class="defaultSettNav">
-              <button
-                class="baseBtn headerSetNav"
-                onclick={(e) => {
-                  e.currentTarget.parentElement?.classList.toggle("hide");
-                }}
-              >
-                <h3>Editor</h3>
-                <svg
-                  width="14px"
-                  height="14px"
-                  viewBox="0 0 24 24"
-                  style="fill: none !important;"
-                  xmlns="http://www.w3.org/2000/svg"
-                  ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
-                    id="SVGRepo_tracerCarrier"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  ></g><g id="SVGRepo_iconCarrier">
-                    <path
-                      fill-rule="evenodd"
-                      clip-rule="evenodd"
-                      d="M12 7C12.2652 7 12.5196 7.10536 12.7071 7.29289L19.7071 14.2929C20.0976 14.6834 20.0976 15.3166 19.7071 15.7071C19.3166 16.0976 18.6834 16.0976 18.2929 15.7071L12 9.41421L5.70711 15.7071C5.31658 16.0976 4.68342 16.0976 4.29289 15.7071C3.90237 15.3166 3.90237 14.6834 4.29289 14.2929L11.2929 7.29289C11.4804 7.10536 11.7348 7 12 7Z"
-                      fill="#000000"
-                    ></path>
-                  </g></svg
-                >
-              </button>
-              <div class="selfList">
-                <ul>
-                  <li>
-                    <span>Font Family</span>
-                    <input
-                      type="text"
-                      spellcheck="false"
-                      value={editorViewStyle.fontFamily}
-                      onchange={(e) =>
-                        editorViewStyle.setFontFamily(e.currentTarget.value)}
-                    />
-                  </li>
-                  <li>
-                    <span>Font Size</span>
-                    <input
-                      type="number"
-                      spellcheck="false"
-                      value={parseInt(editorViewStyle.fontSize)}
-                      onchange={(e) =>
-                        editorViewStyle.setFontSize(
-                          Number(e.currentTarget.value),
-                        )}
-                    />
-                  </li>
-                </ul>
-              </div>
-            </nav>
-          </div>
-          <div class="editors">
-            {#each Object.entries(files) as [name, path], id}
-              <CodeEditor
-                filename={name}
-                content={fileContents[name] ?? ""}
-                isActive={id == activeId}
-                themeName={editorTheme.current}
-                onChange={(value) => {
-                  HandleEditorOnChange(name, value);
-                }}
-                onFocus={() => (activeId = id)}
-              />
-            {/each}
+            </div>
           </div>
         </div>
       </main>
