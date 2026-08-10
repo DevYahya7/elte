@@ -69,7 +69,7 @@ class EditorViewStyle {
   );
   fontFamily = $state(
     localStorage.getItem("fontFamily") ??
-      "JetBrainsMono Nerd Font Mono, Consolas, monospace !important",
+      "JetBrainsMono Nerd Font Mono, Consolas, monospace",
   );
 
   setFontSize(size: number) {
@@ -77,7 +77,7 @@ class EditorViewStyle {
   }
 
   setFontFamily(font: string) {
-    this.fontFamily = `${font}, monospace !important`;
+    this.fontFamily = `${font}`;
   }
 }
 

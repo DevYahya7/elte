@@ -260,7 +260,7 @@
       resizable: true,
       fullscreen: false,
       center: true,
-      minWidth: 800,
+      minWidth: 300,
       minHeight: 400,
     });
 

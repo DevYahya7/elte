@@ -132,7 +132,7 @@
   const baseTheme = EditorView.theme({
     "&": {
       // fontFamily: "Consolas, monospace !important",
-      fontFamily: editorViewStyle.fontFamily,
+      fontFamily: editorViewStyle.fontFamily + ", monospace !important",
       fontSize: editorViewStyle.fontSize,
       // fontSize: "15px",
     },
@@ -141,7 +141,7 @@
     },
     ".cm-scroller": {
       // fontFamily: "JetBrainsMono Nerd Font Mono, Consolas, monospace !important",
-      fontFamily: editorViewStyle.fontFamily,
+      fontFamily: editorViewStyle.fontFamily + ", monospace !important",
     },
   });
 

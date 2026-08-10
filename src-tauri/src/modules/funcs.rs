@@ -307,7 +307,7 @@ pub fn run_code(file: [&str; 2]) -> Result<(), String> {
             Command::new("cmd")
                 .current_dir(file_dir)
                 .args(cmd_start)
-                .arg(format!("php '{}'", file_name))
+                .arg("start http://localhost:8080; php -S localhost:8080")
                 .spawn()
                 .map_err(|e| e.to_string())?;
         }
