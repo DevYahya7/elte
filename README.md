@@ -1,3 +1,7 @@
+# Extremely Light Text Editor
+
+The ELTE project was done by me for the sole purpose of having a modern, fully functional lightweight text editor.
+
 # sv
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
