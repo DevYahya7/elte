@@ -4,6 +4,16 @@
 
 The ELTE project was done by me for the sole purpose of having a modern, fully functional lightweight text editor.
 
+## Features
+
+* Fast and lightweight native desktop performance
+* Modern UI built with Svelte 5
+
+## Prerequisites
+Before running this project, make sure you have installed:
+* [Node.js](https://nodejs.org/)
+* [Rust](https://www.rust-lang.org/)
+
 # sv
 
 Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
