@@ -5,6 +5,7 @@ node_modules/
 # Rust / Tauri build output
 target/
 src-tauri/target/
+notes.txt
 
 # Environment & OS files
 .env
