@@ -23,8 +23,7 @@
 
   const log = console.log;
 
-  let name = $state("No one");
-  let msg = $state("");
+  const APP_TITLE = "Extremely Light Text Editor";
 
   interface FromFile {
     name: string | undefined;
@@ -69,21 +68,22 @@
     target: null as any,
   });
 
-  async function GreetMe(name: string) {
-    msg = await invoke<string>("greet", { name: name });
-  }
-
   async function CreateFile() {
     try {
-      const file = {
+      const file: {
+        path: string | null;
+        name: string | undefined;
+      } = {
         path: await open({
           multiple: false,
           directory: true,
         }),
-        name: prompt("Enter file name")?.trim(),
+        name: undefined,
       };
 
-      if (!file.name || !file.path) return;
+      if (!file.path) return;
+      file.name = prompt("Enter file name")?.trim();
+      if (!file.name) return;
 
       await invoke("add_file", { file: file, createNew: true });
       await GetFiles();
@@ -210,7 +210,9 @@
       ReadFromFile();
     }
 
-    lang = document.querySelector(".activeTextArea .cm-content");
+    lang = document.querySelector(
+      `.codemirror-wrapper[data-id='${e.currentTarget.dataset.id}'] .cm-content`,
+    );
     if (lang) {
       lang = lang.dataset.language;
     }
@@ -341,6 +343,7 @@
   };
 
   window.addEventListener("keydown", (e: KeyboardEvent) => {
+    // control key shortcuts
     if (e.ctrlKey || e.metaKey) {
       if (e.key.toLowerCase() === "s") {
         e.preventDefault();
@@ -354,6 +357,8 @@
           e.preventDefault();
           RunCode();
         }
+      } else if (e.key.toLowerCase() === "n") {
+        CreateFile();
       }
     }
 
@@ -363,6 +368,20 @@
         ExpandExplorer();
       }
     }
+
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key.toLowerCase() === "o") {
+        OpenFile();
+      }
+    }
+
+    if (e.ctrlKey || e.metaKey) {
+      if (e.key.toLowerCase() === "k") {
+        OpenDir();
+      }
+    }
+
+    // window
 
     if (e.ctrlKey || e.metaKey) {
       if (e.key.toLowerCase() === "r" || e.key.toLowerCase() === "f5") {
@@ -377,16 +396,13 @@
     ) {
       e.preventDefault();
       SwitchTabs("decrement");
-      log("hello");
     } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "tab") {
       e.preventDefault();
       SwitchTabs("increment");
-      log("hello");
     }
   });
 
   async function setupCloseListener() {
-
     await appWindow.onCloseRequested(async (e) => {
       const hasUnsavedChanges = Object.values(unsavedFiles).some((v) => v);
 
@@ -444,8 +460,6 @@
     if (overl && footer) {
       const val = footer.offsetHeight + 50;
       document.body.style.setProperty("--height", val + "px");
-
-      log(val);
     }
   }
 
@@ -662,81 +676,92 @@
                 <div class="header">
                   <small>Project</small>
                 </div>
-                {#each Object.entries(files) as [name, path], id}
-                  <li class:active={id == activeId}>
-                    <button
-                      onmousedown={(e) => HandleFileMouseDown(e, name)}
-                      class="fileIcon icon-btn"
-                      aria-label="file-button"
-                    >
-                      <svg
-                        width="18px"
-                        height="18px"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
-                          id="SVGRepo_tracerCarrier"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        ></g><g id="SVGRepo_iconCarrier">
-                          <path
-                            d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
-                            stroke="#000000"
-                            stroke-width="1.416"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          ></path>
-                        </g></svg
+                {#if Object.entries(files).length == 0}
+                  <div class="emptyMenu">
+                    <ul>
+                      <li>
+                        <small>You have not yet opened a folder</small>
+                        <button onclick={OpenDir}>Open Folder</button>
+                      </li>
+                    </ul>
+                  </div>
+                {:else}
+                  {#each Object.entries(files) as [name, path], id}
+                    <li class:active={id == activeId}>
+                      <button
+                        onmousedown={(e) => HandleFileMouseDown(e, name)}
+                        class="fileIcon icon-btn"
+                        aria-label="file-button"
                       >
-                    </button>
-                    <button
-                      data-id={name}
-                      class="navItem"
-                      class:unsaved={unsavedFiles[name]}
-                      onclick={(e) => HandleFileClick(e, id)}
-                      title={`${path}\\${name}`}
-                    >
-                      <span> {name} </span>
-                    </button>
-                    <button
-                      class="close"
-                      aria-label="close"
-                      onclick={(e) => {
-                        CloseFile(e);
-                      }}
-                      data-name={name}
-                    >
-                      <svg
-                        width="14px"
-                        height="14px"
-                        viewBox="-0.5 0 25 25"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                        ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
-                          id="SVGRepo_tracerCarrier"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        ></g><g id="SVGRepo_iconCarrier">
-                          <path
-                            d="M3 21.32L21 3.32001"
-                            stroke="#000000"
-                            stroke-width="1.5"
+                        <svg
+                          width="18px"
+                          height="18px"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
+                            id="SVGRepo_tracerCarrier"
                             stroke-linecap="round"
                             stroke-linejoin="round"
-                          ></path>
-                          <path
-                            d="M3 3.32001L21 21.32"
-                            stroke="#000000"
-                            stroke-width="1.5"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          ></path>
-                        </g></svg
+                          ></g><g id="SVGRepo_iconCarrier">
+                            <path
+                              d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
+                              stroke="#000000"
+                              stroke-width="1.416"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            ></path>
+                          </g></svg
+                        >
+                      </button>
+                      <button
+                        data-id={name}
+                        class="navItem"
+                        class:unsaved={unsavedFiles[name]}
+                        onclick={(e) => HandleFileClick(e, id)}
+                        title={`${path}\\${name}`}
                       >
-                    </button>
-                  </li>
-                {/each}
+                        <span> {name} </span>
+                      </button>
+                      <button
+                        class="close"
+                        aria-label="close"
+                        onclick={(e) => {
+                          CloseFile(e);
+                        }}
+                        data-name={name}
+                      >
+                        <svg
+                          width="14px"
+                          height="14px"
+                          viewBox="-0.5 0 25 25"
+                          fill="none"
+                          xmlns="http://www.w3.org/2000/svg"
+                          ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
+                            id="SVGRepo_tracerCarrier"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          ></g><g id="SVGRepo_iconCarrier">
+                            <path
+                              d="M3 21.32L21 3.32001"
+                              stroke="#000000"
+                              stroke-width="1.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            ></path>
+                            <path
+                              d="M3 3.32001L21 21.32"
+                              stroke="#000000"
+                              stroke-width="1.5"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                            ></path>
+                          </g></svg
+                        >
+                      </button>
+                    </li>
+                  {/each}
+                {/if}
               </ul>
             </div>
             <div
@@ -863,18 +888,93 @@
             </div>
             <div class="editorsContainer">
               <div class="editors">
-                {#each Object.entries(files) as [name, path], id}
-                  <CodeEditor
-                    filename={name}
-                    content={fileContents[name] ?? ""}
-                    isActive={id == activeId}
-                    themeName={editorTheme.current}
-                    onChange={(value) => {
-                      HandleEditorOnChange(name, value);
-                    }}
-                    onFocus={() => (activeId = id)}
-                  />
-                {/each}
+                {#if Object.entries(files).length == 0}
+                  <div class="emptySection">
+                    <div class="emptyHeader">
+                      <h1>{APP_TITLE}</h1>
+                      <small>Reality Studios</small>
+                    </div>
+
+                    <ul id="start">
+                      <div class="emptyListHeader">
+                        <h3>Start</h3>
+                      </div>
+                      <li>
+                        <button onclick={CreateFile}>
+                          <div class="icon"></div>
+                          <span>New File</span>
+                        </button>
+                      </li>
+                      <li>
+                        <button onclick={OpenFile}>
+                          <div class="icon"></div>
+                          <span>Open File</span>
+                        </button>
+                      </li>
+                      <li>
+                        <button onclick={OpenDir}>
+                          <div class="icon"></div>
+                          <span>Open Folder</span>
+                        </button>
+                      </li>
+                    </ul>
+                    <ul id="shortcuts">
+                      <div class="emptyListHeader">
+                        <h3>Shortcuts</h3>
+                      </div>
+                      <li>
+                        <small class="shortcutName">Open File</small>
+                        <div class="shortcutKeys">
+                          <code>Ctrl</code> + <code>O</code>
+                        </div>
+                      </li>
+                      <li>
+                        <small class="shortcutName">Open Folder</small>
+                        <div class="shortcutKeys">
+                          <code>Ctrl</code> + <code>K</code>
+                        </div>
+                      </li>
+                      <li>
+                        <small class="shortcutName">Create New File</small>
+                        <div class="shortcutKeys">
+                          <code>Ctrl</code> + <code>N</code>
+                        </div>
+                      </li>
+                      <li>
+                        <small class="shortcutName">Navigate files</small>
+                        <div class="shortcutKeys">
+                          <code>Ctrl</code> + <code>Tab</code>
+                        </div>
+                      </li>
+                      <li>
+                        <small class="shortcutName">Run Code</small>
+                        <div class="shortcutKeys">
+                          <code>Ctrl</code> + <code>Alt</code> + <code>N</code>
+                        </div>
+                      </li>
+                      <li>
+                        <small class="shortcutName">Save File</small>
+                        <div class="shortcutKeys">
+                          <code>Ctrl</code> + <code>S</code>
+                        </div>
+                      </li>
+                    </ul>
+                  </div>
+                {:else}
+                  {#each Object.entries(files) as [name, path], id}
+                    <CodeEditor
+                      filename={name}
+                      dataId={name}
+                      content={fileContents[name] ?? ""}
+                      isActive={id == activeId}
+                      themeName={editorTheme.current}
+                      onChange={(value) => {
+                        HandleEditorOnChange(name, value);
+                      }}
+                      onFocus={() => (activeId = id)}
+                    />
+                  {/each}
+                {/if}
               </div>
               <div class="footeroverlay"></div>
             </div>

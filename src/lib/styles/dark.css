@@ -119,6 +119,19 @@ body[data-theme="dark"] {
       textarea {
         background: rgb(240, 240, 240);
       }
+
+      .emptySection {
+        ul {
+          &#shortcuts {
+            li {
+              code {
+                background: rgb(30, 30, 30);
+                border-bottom: 1px solid rgb(70, 70, 70);
+              }
+            }
+          }
+        }
+      }
     }
   }
 

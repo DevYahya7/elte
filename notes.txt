@@ -6,6 +6,7 @@ turn file tree into line based sort
 
 add search for file Ctrl P
 
+find if file exists before adding it
 
 // FIXES
 
@@ -13,3 +14,31 @@ massive autocomplete support for dozens of langauges
 warning for exiting while unsaved work
 updated editor and app UI
 new refresh app button 
+fixed create new file
+update error message UI 
+
+
+  "script.ts": "C:\\Users\\HP\\Downloads",
+  "new_userscript1.js": "C:\\Users\\HP\\Documents\\Dw\\MonkeyUserScripts",
+  "impressive.ts": "C:\\Users\\HP\\Downloads",
+  "+page.svelte": "C:\\Users\\HP\\Documents\\Dw\\CodeAfter\\Svelte\\src\\routes",
+  "file.c": "C:\\Users\\HP\\Downloads",
+  "fr.ts": "C:\\Users\\HP\\Downloads",
+  "index.html": "C:\\Users\\HP\\Downloads",
+  "index.txt": "C:\\Users\\HP\\Downloads",
+  "inevitable.py": "C:\\Users\\HP\\Downloads",
+  "main.py": "C:\\Users\\HP\\Downloads",
+  "main.rs": "C:\\Users\\HP\\Downloads",
+  "app.py": "C:\\Users\\HP\\Downloads",
+  "super.py": "C:\\Users\\HP\\Downloads\\Nouveau dossier",
+  "RPS.cpp": "C:\\Users\\HP\\Downloads",
+  "Program.cs": "C:\\Users\\HP\\Downloads\\App",
+  "lol.bash": "C:\\Users\\HP\\Downloads",
+  "fac.algo": "C:\\Users\\HP\\Downloads",
+  "graph.js": "C:\\Users\\HP\\Downloads",
+  "empty.py": "C:\\Users\\HP\\Downloads",
+  "new.py": "C:\\Users\\HP\\Downloads",
+  "everybody.js": "C:\\Users\\HP\\Downloads",
+  "algorithm.ps1": "C:\\Users\\HP\\Downloads",
+  "App.java": "C:\\Users\\HP\\Downloads\\App",
+  "main.go": "C:\\Users\\HP\\Downloads"

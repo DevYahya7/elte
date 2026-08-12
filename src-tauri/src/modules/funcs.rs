@@ -70,7 +70,7 @@ pub fn get_files(app: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn add_file(app: AppHandle, file: FromFile, create_new: bool) -> Result<(), String> {
+pub fn add_file(app: AppHandle, file: FromFile, mut create_new: bool) -> Result<(), String> {
     let target_path = Path::new(&file.path).join(&file.name);
 
     // println!("target {:?}", target_path);
@@ -79,7 +79,19 @@ pub fn add_file(app: AppHandle, file: FromFile, create_new: bool) -> Result<(), 
         if !parent.exists() {
             create_dir_all(parent).map_err(|e| e.to_string())?;
         }
+        else {
+            let rd = read_dir(parent).map_err(|e| e.to_string())?;
+            for dir_file in rd {
+                let entry = dir_file.map_err(|e| e.to_string())?;
+                let file_name = entry.file_name().to_string_lossy().into_owned();
+                if (file_name == file.name) {
+                    create_new = false;
+                }
+            }
+        }
     }
+
+    // return Err("Error".to_string());
 
     if create_new {
         let _new_file = File::create(&target_path).map_err(|e| e.to_string())?;
@@ -92,7 +104,10 @@ pub fn add_file(app: AppHandle, file: FromFile, create_new: bool) -> Result<(), 
     let mut saved_files: FileMap = serde_json::from_str(&content).unwrap_or_default();
 
     if let Some(file_path) = saved_files.get(&file.name) {
-        return Err(format!("File '{}\\{}' already exists in directory", file_path, &file.name));
+        return Err(format!(
+            "File '{}\\{}' already exists in directory",
+            file_path, &file.name
+        ));
     }
 
     saved_files.insert(file.name, file.path);

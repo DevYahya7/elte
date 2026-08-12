@@ -97,12 +97,6 @@
                     HandleOnChange(val);
                   }}
                 />
-                <!-- <iframe
-                  src="../"
-                  title="Editor View"
-                  frameborder="0"
-                  style="width: 100%; height: 100%; border: none;"
-                ></iframe> -->
               </div>
             </div>
           </div>

@@ -7,7 +7,7 @@ body[data-theme="light"] {
     }
   }
 
-  --df: rgb(255, 163, 70);
+  --df: rgb(255, 101, 70);
   --bg: rgb(255, 255, 255);
   --overlay: rgb(0, 0, 0, 0.04);
 
@@ -21,7 +21,6 @@ body[data-theme="light"] {
   button,
   input,
   textarea {
-    /* background: rgb(240, 240, 240); */
     background: none;
   }
 
@@ -57,10 +56,6 @@ body[data-theme="light"] {
   }
 
   /* main */
-  h1 {
-    color: crimson;
-  }
-
   .editor {
     main {
       .nav {
@@ -111,6 +106,19 @@ body[data-theme="light"] {
 
       textarea {
         background: rgb(240, 240, 240);
+      }
+    }
+
+    .emptySection {
+      ul {
+        &#shortcuts {
+          li {
+            code {
+              background: rgb(230, 230, 230);
+              border-bottom: 1px solid rgb(200, 200, 200);
+            }
+          }
+        }
       }
     }
   }

@@ -65,6 +65,11 @@
   import { java } from "@codemirror/lang-java";
   import { php } from "@codemirror/lang-php";
   import { html } from "@codemirror/lang-html";
+  import { css } from "@codemirror/lang-css";
+  import { sql } from "@codemirror/lang-sql";
+  import { json } from "@codemirror/lang-json";
+  import { yaml } from "@codemirror/lang-yaml";
+  import { go } from "@codemirror/lang-go";
   import { csharp } from "@replit/codemirror-lang-csharp";
 
   import { GetKeywords } from "$lib/keywordsDB.svelte";
@@ -117,6 +122,7 @@
   };
 
   interface Props {
+    dataId?: string;
     filename?: string;
     content?: string;
     isActive?: boolean;
@@ -126,6 +132,7 @@
   }
 
   let {
+    dataId = "",
     filename = "",
     content = "",
     isActive = false,
@@ -174,15 +181,42 @@
   const langMap: Record<string, () => any> = {
     js: javascript,
     ts: javascript,
+
     py: python,
+
     rs: rust,
-    cpp: cpp,
+
     c: cpp,
     h: cpp,
-    cs: csharp,
+    cpp: cpp,
+    cc: cpp,
+    cxx: cpp,
+    hpp: cpp,
+    hh: cpp,
+    hxx: cpp,
+
     java: java,
-    php: html,
+
+    cs: csharp,
+
+    php: php,
+
+    html: html,
+    htm: html,
+
+    css: css,
+
+    sql: sql,
+
+    go: go,
+
+    json: json,
+
+    yaml: yaml,
+    yml: yaml,
+
     svelte: html,
+
     algo: python,
   };
 
@@ -357,6 +391,7 @@
   bind:this={container}
   class="codemirror-wrapper"
   class:activeTextArea={isActive}
+  data-id={filename}
 ></div>
 
 <style>
