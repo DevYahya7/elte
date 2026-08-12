@@ -40,6 +40,6 @@ Before running or building this project, ensure you have installed:
 * CodeMirror (https://codemirror.net/) for providing the extensible code editor core.
 * Svelte & Tauri for the lightweight UI and desktop integration.
 
---
+---
 
 Free code signing provided by SignPath.io, certificate by SignPath Foundation
