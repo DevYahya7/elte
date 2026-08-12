@@ -1,1 +1,15 @@
 add folders alongside files in file tree
+
+add more Algo autocomplete
+
+turn file tree into line based sort
+
+add search for file Ctrl P
+
+
+// FIXES
+
+massive autocomplete support for dozens of langauges
+warning for exiting while unsaved work
+updated editor and app UI
+new refresh app button 

@@ -10,6 +10,9 @@
     "dialog:default",
     "dialog:allow-open",
     "dialog:allow-save",
+    "core:window:allow-close",
+    "core:window:allow-destroy",
+    "dialog:allow-ask",
     "core:webview:allow-create-webview-window",
     "core:window:allow-set-focus"
   ]

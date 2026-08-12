@@ -12,16 +12,23 @@
 
 body {
   font-size: 14px;
-  font-family: Inter,Se sans-serif;
+  font-family: Inter, sans-serif;
   overflow: hidden;
   height: 100vh;
+
+  --sec: rgb(255, 0, 93);
 
   #container {
     height: 100%;
   }
 }
 
-button,
+a {
+  text-decoration: none;
+  color: var(--df);
+}
+
+button:not(.icon-btn),
 input,
 textarea {
   border-radius: 20px;
@@ -29,7 +36,13 @@ textarea {
   padding: 8px 15px;
   outline: none;
   font-family: Inter, sans-serif;
-  transition: 0.1s;
+}
+
+.icon-btn {
+  border-radius: 20px;
+  border: none;
+  outline: none;
+  padding: 0 !important;
 }
 
 button {
@@ -43,7 +56,6 @@ textarea {
 }
 
 .content {
-  border-radius: 10px;
   height: 100%;
   height: 100%;
 
@@ -60,16 +72,18 @@ textarea {
 .editor {
   height: 100%;
   height: 100%;
+  display: flex;
+  flex-direction: column;
 
   nav {
     padding: 5px;
+    border-bottom: 1px solid transparent;
   }
 
   main {
-    flex: 1;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    flex: 1;
     height: 100%;
 
     .nav {
@@ -78,6 +92,20 @@ textarea {
       justify-content: space-between;
       gap: 10px;
       width: 100%;
+      position: relative;
+
+      &::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: var(--overlay);
+        z-index: -1;
+      }
+
+      button {
+        padding: 5px 8px;
+        font-size: 12px;
+      }
 
       ul {
         justify-content: center;
@@ -159,10 +187,6 @@ textarea {
     }
 
     .editorAreaContainer {
-      display: flex;
-      align-items: center;
-      flex-direction: column;
-      flex: 1;
       width: 100%;
       height: 100%;
     }
@@ -171,13 +195,13 @@ textarea {
       height: 100%;
       display: flex;
       align-items: center;
-      gap: 5px;
+      /* gap: 5px; */
       width: 100%;
 
       .editCnt {
         height: 100%;
-        width: 300px !important;
-        padding-bottom: 50px;
+        min-width: 300px !important;
+        border-right: 1px solid;
       }
 
       #filesTree {
@@ -186,11 +210,20 @@ textarea {
         justify-content: start;
         white-space: nowrap;
         gap: 0;
-        overflow-y: auto;
-        overflow-x: hidden;
+        overflow-y: scroll;
         border-radius: 0;
         width: 100%;
         height: 100%;
+        position: relative;
+        z-index: 1;
+        background: var(--overlay);
+        padding-bottom: var(--height);
+
+        .header {
+          padding: 10px;
+          text-align: center;
+          width: 100%;
+        }
 
         li {
           width: 100%;
@@ -198,6 +231,7 @@ textarea {
           align-items: center;
           border-radius: 0 20px 20px 0;
           opacity: 0.7;
+          padding-left: 5px;
 
           &:hover {
             .close {
@@ -211,6 +245,14 @@ textarea {
             button {
               font-weight: 550;
             }
+          }
+
+          &.moving {
+            transition: none;
+          }
+
+          button {
+            padding-left: 0;
           }
         }
 
@@ -262,11 +304,9 @@ textarea {
       #settingsMenu {
         display: none;
         overflow-y: scroll;
-        overflow-x: hidden;
-        flex-grow: 1;
-        flex-basis: 100%;
         flex-direction: column;
         padding: 0 10px;
+        width: 100%;
 
         .defaultSettNav {
           display: flex;
@@ -280,7 +320,7 @@ textarea {
             padding: 5px 10px;
             display: flex;
             flex-direction: column;
-            border-left: 2px solid var(--df);
+            /* border-left: 2px solid var(--df); */
             border-radius: 0;
 
             li {
@@ -346,24 +386,76 @@ textarea {
       }
     }
 
+    .editorsContainer {
+      height: 100%;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
     .editors {
+      display: flex;
+      flex-direction: column;
       height: 100%;
       width: 100%;
       position: relative;
     }
 
-    textarea {
-      position: absolute;
-      height: 100%;
-      width: 100%;
-      resize: none;
-      font-family: monospace;
-      font-size: 16px;
-      z-index: -1;
-    }
-
     .activeTextArea {
       z-index: 9;
+    }
+  }
+}
+
+.footeroverlay {
+  /* background: var(--bg); */
+  width: 100%;
+  height: var(--height) !important;
+  z-index: 5;
+}
+
+footer {
+  position: fixed;
+  bottom: 0;
+  right: 0;
+  left: 0;
+  width: 100%;
+  z-index: 999;
+  background: var(--bg);
+  border-top: 1px solid transparent;
+
+  small {
+    opacity: 0.7;
+  }
+
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background: var(--overlay);
+  }
+
+  .details {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0px 10px;
+  }
+
+  .planguage {
+    text-transform: capitalize;
+  }
+
+  .elem.right {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    .link {
+      display: flex;
+      align-items: center;
+      gap: 5px;
     }
   }
 }

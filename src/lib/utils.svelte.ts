@@ -63,10 +63,7 @@ class AppTheme {
 }
 
 class EditorViewStyle {
-  fontSize = $state(
-    localStorage.getItem("fontSize")
-      ?? "15px"
-  );
+  fontSize = $state(localStorage.getItem("fontSize") ?? "15px");
   fontFamily = $state(
     localStorage.getItem("fontFamily") ??
       "JetBrainsMono Nerd Font Mono, Consolas, monospace",
@@ -91,11 +88,13 @@ export function Update() {
     // console.log(theme);
     let div = document.querySelector(".ͼ1");
 
-    if (div)
+    if (div) {
+      let getBg = getComputedStyle(div).backgroundColor
       document.body.style.setProperty(
         "--bg",
-        getComputedStyle(div).backgroundColor,
+        getBg,
       );
+    }
 
     let getBodyTheme =
       appTheme.current.indexOf("Light") != -1

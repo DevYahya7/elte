@@ -7,8 +7,10 @@ body[data-theme="light"] {
     }
   }
 
-  --df: rgb(255, 115, 0);
+  --df: rgb(255, 163, 70);
   --bg: rgb(255, 255, 255);
+  --overlay: rgb(0, 0, 0, 0.04);
+
   background: var(--bg);
 
   .cm-activeLineGutter {
@@ -51,13 +53,7 @@ body[data-theme="light"] {
   }
 
   .active {
-    /* background: rgb(230, 230, 230); */
     background: rgb(0, 0, 0, 0.07);
-
-    * {
-      /* color: white !important;
-        */
-    }
   }
 
   /* main */
@@ -79,8 +75,11 @@ body[data-theme="light"] {
         }
       }
 
-      ul {
+      ul#filesTree {
         li {
+          &:hover {
+            background: rgb(0, 0, 0, 0.07);
+          }
           .unsaved {
             &::before {
               background: #231a00;
@@ -103,14 +102,25 @@ body[data-theme="light"] {
         }
       }
 
+      .editCnt {
+        border-right-color: rgb(0, 0, 0, 0.1);
+      }
+      nav {
+        border-bottom-color: rgb(0, 0, 0, 0.1);
+      }
+
       textarea {
         background: rgb(240, 240, 240);
       }
     }
   }
 
+  footer {
+    border-top-color: rgb(0, 0, 0, 0.1);
+  }
+
   .cm-tooltip.cm-tooltip-autocomplete {
-    background-color: rgb(230,230,230) !important;
+    background-color: rgb(230, 230, 230) !important;
     background-color: var(--bg) !important;
     border: 1px solid rgb(200, 200, 200) !important;
     box-shadow: 0 8px 5px rgba(0, 0, 0, 0) !important;

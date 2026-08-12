@@ -9,6 +9,7 @@ body[data-theme="dark"] {
 
   --df: #f78166;
   --bg: rgb(13, 17, 23);
+  --overlay: rgb(0, 0, 0, 0.04);
 
   background: var(--bg);
   color: white;
@@ -108,25 +109,35 @@ body[data-theme="dark"] {
         }
       }
 
+      .editCnt {
+        border-right-color: rgb(255, 255, 255, 0.1);
+      }
+      nav {
+        border-bottom-color: rgb(255, 255, 255, 0.1);
+      }
+
       textarea {
         background: rgb(240, 240, 240);
       }
     }
   }
 
+  footer {
+    border-top-color: rgb(255, 255, 255, 0.1);
+  }
+
   .cm-tooltip.cm-tooltip-autocomplete {
     background-color: var(--bg) !important;
-    border: 1px solid rgb(255, 255, 255, .1) !important;
+    border: 1px solid rgb(255, 255, 255, 0.1) !important;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0) !important;
   }
 
   .cm-tooltip-autocomplete > ul > li {
-    color: rgb(255,255,255, .7);
+    color: rgb(255, 255, 255, 0.7);
   }
 
   .cm-tooltip-autocomplete > ul > li[aria-selected] {
-    background-color: rgb(210, 210, 210) !important;
-    color: black !important;
-    font-weight: 550;
+    background-color: rgb(255, 255, 255, 0.1) !important;
+    color: white !important;
   }
 }

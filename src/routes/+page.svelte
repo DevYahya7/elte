@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { event } from "@tauri-apps/api";
+  import { app, event } from "@tauri-apps/api";
   import { invoke } from "@tauri-apps/api/core";
-  import { open } from "@tauri-apps/plugin-dialog";
+  import { confirm, open } from "@tauri-apps/plugin-dialog";
   import CodeEditor from "$lib/components/CodeEditor.svelte";
   import { setTheme } from "@tauri-apps/api/app";
   import { WebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -14,6 +14,12 @@
     Update,
     editorViewStyle,
   } from "$lib/utils.svelte";
+  import { cpp } from "@codemirror/lang-cpp";
+  import type { HtmlTagDescriptor } from "vite";
+  import { onMount } from "svelte";
+
+  import { getCurrentWindow } from "@tauri-apps/api/window";
+  import { ask } from "@tauri-apps/plugin-dialog";
 
   const log = console.log;
 
@@ -36,6 +42,8 @@
   let fileContents = $state<Record<string, string>>({});
   let unsavedFiles = $state<Record<string, boolean>>({});
 
+  const appWindow = getCurrentWindow();
+
   let parametres = $state({
     settingsMenu: false,
   });
@@ -53,6 +61,13 @@
   let activeThemeBtn = $state(
     localStorage.getItem("appTheme") ?? appTheme.current,
   );
+
+  let lang: any = $state();
+
+  let moveFilesOrder = $state({
+    move: false,
+    target: null as any,
+  });
 
   async function GreetMe(name: string) {
     msg = await invoke<string>("greet", { name: name });
@@ -134,21 +149,43 @@
   async function HandleFileMouseDown(e: MouseEvent, fileName: string) {
     if (e.button == 1) {
       // Middle click: Delete file
-      await invoke("delete_file", { fileName: fileName, erase: true });
+      // const ok = confirm(`Are you sure you want to delete ${fileName}`);
+      const ok = await ask(`Are you sure you want to delete ${fileName} ?`, {
+        title: "Irreversible action",
+        kind: "warning",
+        okLabel: "Confirm",
+        cancelLabel: "Cancel",
+      });
 
-      // Clean local state
-      delete fileContents[fileName];
-      delete unsavedFiles[fileName];
-
-      await GetFiles();
-
-      if (activeId >= Object.keys(files).length) {
-        activeId = Math.max(0, Object.keys(files).length - 1);
+      if (ok) {
+        await invoke("delete_file", { fileName: fileName, erase: true });
+        // Clean local state
+        delete fileContents[fileName];
+        delete unsavedFiles[fileName];
+        await GetFiles();
+        if (activeId >= Object.keys(files).length) {
+          activeId = Math.max(0, Object.keys(files).length - 1);
+        }
       }
     } else if (e.button == 2) {
       // Right click: Open in explorer
       const filePath = files[fileName];
       await invoke("open_in_explorer", { filePath: filePath });
+    } else if (e.button == 0) {
+      const target = e.currentTarget as HTMLElement | null;
+      if (target && target.parentElement) {
+        moveFilesOrder.move = true;
+        moveFilesOrder.target = target.parentElement;
+      }
+    }
+  }
+
+  function MoveFiles(target: HTMLElement, de: any) {
+    if (!target || !target.parentElement) return;
+    if (moveFilesOrder.move) {
+      target.classList.add("moving");
+      target.style.position = "absolute";
+      target.style.top = de.clientY + "px";
     }
   }
 
@@ -171,6 +208,11 @@
     if (!e.currentTarget.classList.contains("loaded")) {
       e.currentTarget.classList.add("loaded");
       ReadFromFile();
+    }
+
+    lang = document.querySelector(".activeTextArea .cm-content");
+    if (lang) {
+      lang = lang.dataset.language;
     }
   }
 
@@ -273,6 +315,10 @@
     });
   }
 
+  async function OpenLink(link: string) {
+    await invoke("open_link", { link: link });
+  }
+
   function SwitchTabs(mode: "increment" | "decrement") {
     if (mode == "increment") {
       activeId < Object.entries(files).length - 1
@@ -319,7 +365,7 @@
     }
 
     if (e.ctrlKey || e.metaKey) {
-      if (e.key.toLowerCase() === "r") {
+      if (e.key.toLowerCase() === "r" || e.key.toLowerCase() === "f5") {
         // e.preventDefault();
       }
     }
@@ -339,24 +385,109 @@
     }
   });
 
-  window.addEventListener("beforeunload", (e) => {
-    if (Object.values(unsavedFiles).some((isUnsaved) => isUnsaved)) {
+  async function setupCloseListener() {
+
+    await appWindow.onCloseRequested(async (e) => {
+      const hasUnsavedChanges = Object.values(unsavedFiles).some((v) => v);
+
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        const confirmClose = await ask(
+          "You have unsaved changes. Do you really want to quit ?",
+          {
+            title: "Unsaved work",
+            kind: "warning",
+
+            okLabel: "Quit",
+            cancelLabel: "Cancel",
+          },
+        );
+
+        if (confirmClose) {
+          await appWindow.destroy();
+        }
+      }
+    });
+  }
+
+  async function AskReload(e: Event) {
+    const unsaved = Object.values(unsavedFiles).some((isUnsaved) => isUnsaved);
+    if (unsaved) {
       e.preventDefault();
+      const confirm = await ask(
+        "You have unsaved changes. Do you really want to refresh the app ?",
+        {
+          title: "Unsaved work",
+          kind: "warning",
+          okLabel: "Refresh",
+          cancelLabel: "Cancel",
+        },
+      );
+
+      if (confirm) {
+        location.reload();
+      }
+    } else {
+      location.reload();
     }
+  }
+
+  document.addEventListener("mouseup", () => (moveFilesOrder.move = false));
+
+  let activeFile = $state<string[]>([]);
+
+  function FooterHeight() {
+    const overl = document.querySelector(
+      ".footeroverlay",
+    ) as HTMLElement | null;
+    const footer = document.querySelector("#pageFooter") as HTMLElement | null;
+    if (overl && footer) {
+      const val = footer.offsetHeight + 50;
+      document.body.style.setProperty("--height", val + "px");
+
+      log(val);
+    }
+  }
+
+  onMount(() => {
+    FooterHeight();
+    setupCloseListener();
   });
 
   $effect(() => {
+    activeThemeBtn = appTheme.current;
+
+    document
+      .querySelector("#filesTree")
+      ?.addEventListener("mousemove", (de) => {
+        MoveFiles(moveFilesOrder.target, de);
+      });
+
+    if (!moveFilesOrder.move) {
+      if (moveFilesOrder.target && moveFilesOrder.target.parentElement) {
+        moveFilesOrder.target.style.position = "relative";
+        moveFilesOrder.target.style.top = 0;
+        moveFilesOrder.target.classList.remove("moving");
+      }
+
+      document
+        .querySelector("#filesTree")
+        ?.removeEventListener("mousemove", (de) => {
+          MoveFiles(moveFilesOrder.target, de);
+        });
+    }
+
     localStorage.setItem("activeId", String(activeId));
     localStorage.setItem("expandExplorer", String(expandExplorer));
 
-    activeThemeBtn = appTheme.current;
+    activeFile = Object.entries(files)[activeId];
   });
-
 </script>
 
 <svelte:head>
   <!-- <title>{appTitle}</title> -->
 </svelte:head>
+<svelte:window onresize={FooterHeight} />
 
 <div id="container">
   <div class="content">
@@ -402,6 +533,7 @@
                   aria-label="settingsBtn"
                   class="baseBtn"
                   id="settingsBtn"
+                  title="Open settings"
                   onclick={() =>
                     (parametres.settingsMenu = !parametres.settingsMenu)}
                 >
@@ -432,6 +564,7 @@
                   aria-label="openInExternalBtn"
                   class="baseBtn"
                   id="openInExternalBtn"
+                  title="Open file in external window"
                   onclick={OpenInNewWindow}
                 >
                   <svg
@@ -459,6 +592,39 @@
                   >
                 </button>
               </div>
+              <div class="refreshPage">
+                <button
+                  aria-label="refreshPageBtn"
+                  class="baseBtn"
+                  title="Refresh"
+                  id="refreshPageBtn"
+                  onclick={(e) => AskReload(e)}
+                >
+                  <svg
+                    width="21px"
+                    height="21px"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    style="fill: none !important;"
+                    xmlns="http://www.w3.org/2000/svg"
+                    ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
+                      id="SVGRepo_tracerCarrier"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      style="fill: none !important;"
+                    ></g><g id="SVGRepo_iconCarrier">
+                      <path
+                        d="M21 3V8M21 8H16M21 8L18 5.29168C16.4077 3.86656 14.3051 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21C16.2832 21 19.8675 18.008 20.777 14"
+                        stroke="#000000"
+                        stroke-width="1.584"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        style="fill: none !important;"
+                      ></path>
+                    </g></svg
+                  >
+                </button>
+              </div>
             </div>
             <hr />
             <div class="quickEdit">
@@ -469,7 +635,9 @@
               <button onclick={OpenDir} class="baseBtn">Open Folder</button>
             </div>
           </div>
-
+          <div class="fileInfo">
+            <small>{activeFile ? activeFile[0] : ""}</small>
+          </div>
           <div class="controls">
             <button id="runCode" class="baseBtn" onclick={RunCode}
               >Run Code</button
@@ -483,7 +651,6 @@
             >
           </div>
         </nav>
-
         <div class="editorAreaContainer">
           <div class="editorArea">
             <div
@@ -492,38 +659,44 @@
               class:visibleCnt={!expandExplorer}
             >
               <ul id="filesTree">
+                <div class="header">
+                  <small>Project</small>
+                </div>
                 {#each Object.entries(files) as [name, path], id}
                   <li class:active={id == activeId}>
+                    <button
+                      onmousedown={(e) => HandleFileMouseDown(e, name)}
+                      class="fileIcon icon-btn"
+                      aria-label="file-button"
+                    >
+                      <svg
+                        width="18px"
+                        height="18px"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        xmlns="http://www.w3.org/2000/svg"
+                        ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
+                          id="SVGRepo_tracerCarrier"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        ></g><g id="SVGRepo_iconCarrier">
+                          <path
+                            d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
+                            stroke="#000000"
+                            stroke-width="1.416"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                          ></path>
+                        </g></svg
+                      >
+                    </button>
                     <button
                       data-id={name}
                       class="navItem"
                       class:unsaved={unsavedFiles[name]}
                       onclick={(e) => HandleFileClick(e, id)}
-                      onmousedown={(e) => HandleFileMouseDown(e, name)}
                       title={`${path}\\${name}`}
                     >
-                      <div class="fileIcon">
-                        <svg
-                          width="18px"
-                          height="18px"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
-                            id="SVGRepo_tracerCarrier"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          ></g><g id="SVGRepo_iconCarrier">
-                            <path
-                              d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
-                              stroke="#000000"
-                              stroke-width="1.416"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            ></path>
-                          </g></svg
-                        >
-                      </div>
                       <span> {name} </span>
                     </button>
                     <button
@@ -668,7 +841,7 @@
                         type="text"
                         spellcheck="false"
                         value={editorViewStyle.fontFamily}
-                        onchange={(e) =>
+                        oninput={(e) =>
                           editorViewStyle.setFontFamily(e.currentTarget.value)}
                       />
                     </li>
@@ -678,7 +851,7 @@
                         type="number"
                         spellcheck="false"
                         value={parseInt(editorViewStyle.fontSize)}
-                        onchange={(e) =>
+                        oninput={(e) =>
                           editorViewStyle.setFontSize(
                             Number(e.currentTarget.value),
                           )}
@@ -688,25 +861,68 @@
                 </div>
               </nav>
             </div>
-            <div class="editors">
-              {#each Object.entries(files) as [name, path], id}
-                <CodeEditor
-                  filename={name}
-                  content={fileContents[name] ?? ""}
-                  isActive={id == activeId}
-                  themeName={editorTheme.current}
-                  onChange={(value) => {
-                    HandleEditorOnChange(name, value);
-                  }}
-                  onFocus={() => (activeId = id)}
-                />
-              {/each}
+            <div class="editorsContainer">
+              <div class="editors">
+                {#each Object.entries(files) as [name, path], id}
+                  <CodeEditor
+                    filename={name}
+                    content={fileContents[name] ?? ""}
+                    isActive={id == activeId}
+                    themeName={editorTheme.current}
+                    onChange={(value) => {
+                      HandleEditorOnChange(name, value);
+                    }}
+                    onFocus={() => (activeId = id)}
+                  />
+                {/each}
+              </div>
+              <div class="footeroverlay"></div>
             </div>
           </div>
         </div>
       </main>
     </section>
   </div>
+  <footer id="pageFooter">
+    <div class="details">
+      <div class="elem">
+        <small
+          >{activeFile != undefined
+            ? activeFile[1] + "\\" + activeFile[0]
+            : ""}</small
+        >
+      </div>
+      <div class="elem right">
+        <div class="planguage">
+          <small>{lang}</small>
+        </div>
+        <button
+          class="link"
+          onclick={() => OpenLink("https://github.com/DevYahya7/elte.git")}
+        >
+          <small> GitHub </small>
+          <svg
+            width="18px"
+            height="18px"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="var(--sec)"
+            ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
+              id="SVGRepo_tracerCarrier"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            ></g><g id="SVGRepo_iconCarrier">
+              <title>github</title>
+              <rect width="24" height="24" fill="none"></rect>
+              <path
+                d="M12,2A10,10,0,0,0,8.84,21.5c.5.08.66-.23.66-.5V19.31C6.73,19.91,6.14,18,6.14,18A2.69,2.69,0,0,0,5,16.5c-.91-.62.07-.6.07-.6a2.1,2.1,0,0,1,1.53,1,2.15,2.15,0,0,0,2.91.83,2.16,2.16,0,0,1,.63-1.34C8,16.17,5.62,15.31,5.62,11.5a3.87,3.87,0,0,1,1-2.71,3.58,3.58,0,0,1,.1-2.64s.84-.27,2.75,1a9.63,9.63,0,0,1,5,0c1.91-1.29,2.75-1,2.75-1a3.58,3.58,0,0,1,.1,2.64,3.87,3.87,0,0,1,1,2.71c0,3.82-2.34,4.66-4.57,4.91a2.39,2.39,0,0,1,.69,1.85V21c0,.27.16.59.67.5A10,10,0,0,0,12,2Z"
+              ></path>
+            </g></svg
+          >
+        </button>
+      </div>
+    </div>
+  </footer>
 </div>
 
 <style>
