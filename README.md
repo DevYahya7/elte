@@ -4,15 +4,11 @@
 
 ELTE was created for the sole purpose of having a modern, fully functional, and lightweight text editor.
 
----
-
 ## Features
 
 * Fast and lightweight native desktop performance
 * Code editing powered by CodeMirror
 * Modern UI built with Svelte 5
-
----
 
 ## Tech Stack & Dependencies
 
@@ -20,15 +16,11 @@ ELTE was created for the sole purpose of having a modern, fully functional, and 
 * Code Editor Engine: CodeMirror 6 (https://codemirror.net/)
 * Desktop Runtime: Tauri & Rust (https://tauri.app/ / https://www.rust-lang.org/)
 
----
-
 ## Prerequisites
 
 Before running or building this project, ensure you have installed:
 * Node.js (https://nodejs.org/)
 * Rust (https://www.rust-lang.org/)
-
----
 
 ## Getting Started
 
