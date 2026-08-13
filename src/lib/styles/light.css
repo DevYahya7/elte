@@ -83,6 +83,12 @@ body[data-theme="light"] {
         }
       }
 
+      .filesTree_PATH {
+        &::before {
+          background: rgb(0, 0, 0, 0.2);
+        }
+      }
+
       #settingsMenu {
         #themeSelection {
           ul {
@@ -119,6 +125,17 @@ body[data-theme="light"] {
             }
           }
         }
+      }
+    }
+
+    .emptyMenu {
+      button {
+        &:hover {
+          color: black !important;
+        }
+      }
+      small {
+        color: black !important;
       }
     }
   }

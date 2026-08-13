@@ -19,11 +19,12 @@
   import { onMount } from "svelte";
 
   import { getCurrentWindow } from "@tauri-apps/api/window";
-  import { ask } from "@tauri-apps/plugin-dialog";
+  import { ask, message } from "@tauri-apps/plugin-dialog";
+  import { form } from "$app/server";
 
   const log = console.log;
 
-  const APP_TITLE = "Extremely Light Text Editor";
+  const APP_TITLE = "Extremely Lightweight Text Editor";
 
   interface FromFile {
     name: string | undefined;
@@ -37,6 +38,7 @@
   init();
 
   // Reactive state
+  const structuredFiles: any = $state([]);
   let files = $state<Record<string, string>>({});
   let fileContents = $state<Record<string, string>>({});
   let unsavedFiles = $state<Record<string, boolean>>({});
@@ -51,11 +53,13 @@
     Boolean(localStorage.getItem("expandExplorer")) ?? true,
   );
 
-  let activeId = $state(
-    localStorage.getItem("activeId")
-      ? Number(localStorage.getItem("activeId"))
-      : 0,
-  );
+  // let activeId = $state(
+  //   localStorage.getItem("activeId")
+  //     ? Number(localStorage.getItem("activeId"))
+  //     : 0,
+  // );
+
+  let activeId = $state(localStorage.getItem("activeId") ?? "");
 
   let activeThemeBtn = $state(
     localStorage.getItem("appTheme") ?? appTheme.current,
@@ -89,6 +93,13 @@
       await GetFiles();
     } catch (e) {
       console.error("Error opening file:", e);
+      await message("File already exists", {
+        title: "Error opening file",
+        kind: "error",
+        buttons: {
+          ok: "Confirm",
+        },
+      });
     }
   }
 
@@ -118,7 +129,7 @@
 
         await GetFiles();
 
-        activeId = Object.entries(files).length - 1;
+        activeId = Object.entries(files)[Object.entries(files).length - 1][0];
       }
     } catch (error) {
       alert(error);
@@ -126,16 +137,18 @@
   }
 
   async function CloseFile(e: any, file_name?: string) {
+    e.currentTarget.parentElement.style.display = "none";
     const fileName = file_name ?? e.currentTarget.dataset.name;
     await invoke("close_file", { fileName: fileName });
     await GetFiles();
+    if (Object.entries(files).length > 0)
+      activeId = Object.entries(files)[0][0];
   }
 
   async function GetFiles() {
     const strFiles = await invoke<string>("get_files");
     files = JSON.parse(strFiles);
 
-    // Read content for any new files
     const entries = Object.entries(files);
     for (let i = 0; i < entries.length; i++) {
       const [fileName] = entries[i];
@@ -146,10 +159,9 @@
     }
   }
 
-  async function HandleFileMouseDown(e: MouseEvent, fileName: string) {
+  async function HandleFileMouseDown(e: any, fileName: string) {
     if (e.button == 1) {
       // Middle click: Delete file
-      // const ok = confirm(`Are you sure you want to delete ${fileName}`);
       const ok = await ask(`Are you sure you want to delete ${fileName} ?`, {
         title: "Irreversible action",
         kind: "warning",
@@ -163,9 +175,13 @@
         delete fileContents[fileName];
         delete unsavedFiles[fileName];
         await GetFiles();
-        if (activeId >= Object.keys(files).length) {
-          activeId = Math.max(0, Object.keys(files).length - 1);
-        }
+        // if (activeId >= Object.keys(files).length) {
+        //   activeId = Math.max(0, Object.keys(files).length - 1);
+        // }
+        activeId = Object.entries(files)[0][0];
+        e.currentTarget.parentElement.style.display = "none";
+
+        log(fileName);
       }
     } else if (e.button == 2) {
       // Right click: Open in explorer
@@ -190,21 +206,25 @@
   }
 
   async function ReadFromFile(ind?: number) {
-    const targetIdx = ind ?? activeId;
-    const file = Object.entries(files)[targetIdx];
+    const file =
+      ind != null ? Object.entries(files)[ind] : Array.from(activeFile);
     if (!file) return;
 
-    const [fileName] = file;
-    const content: string = await invoke("read_file_content", { file: file });
+    try {
+      const [fileName] = file;
+      const content: string = await invoke("read_file_content", { file: file });
 
-    fileContents = {
-      ...fileContents,
-      [fileName]: content,
-    };
+      fileContents = {
+        ...fileContents,
+        [fileName]: content,
+      };
+    } catch (e) {
+      console.log("Error");
+    }
   }
 
-  function HandleFileClick(e: any, id: number) {
-    activeId = id;
+  function HandleFileClick(e: any, fileName: string) {
+    activeId = fileName;
     if (!e.currentTarget.classList.contains("loaded")) {
       e.currentTarget.classList.add("loaded");
       ReadFromFile();
@@ -216,16 +236,19 @@
     if (lang) {
       lang = lang.dataset.language;
     }
+
+    log(e.currentTarget.dataset.id);
   }
 
   async function SaveFile(ind?: number) {
     const entries = Object.entries(files);
-    let id = ind ?? activeId;
-    const file = entries[id];
+    const file = ind != null ? entries[ind] : Array.from(activeFile);
     if (!file) return;
 
     const [fileName] = file;
     const content = fileContents[fileName] ?? "";
+
+    log(file);
 
     await invoke("save_file", { file: file, content: content });
     unsavedFiles[fileName] = false;
@@ -233,7 +256,8 @@
 
   async function RunCode() {
     await SaveFile();
-    const file = Object.entries(files)[activeId];
+    const file = activeFile;
+
     if (file) {
       await invoke("run_code", { file: file });
     }
@@ -293,7 +317,7 @@
       return;
     }
 
-    const file = Object.entries(files)[activeId];
+    const file = activeFile;
     const path = encodeURIComponent(file[1] + "\\" + file[0]);
 
     const newWindow = new WebviewWindow("newWindow", {
@@ -322,19 +346,16 @@
   }
 
   function SwitchTabs(mode: "increment" | "decrement") {
-    if (mode == "increment") {
-      activeId < Object.entries(files).length - 1
-        ? (activeId += 1)
-        : (activeId = 0);
-    } else {
-      activeId > 0
-        ? (activeId -= 1)
-        : (activeId = Object.entries(files).length - 1);
-    }
+    // if (mode == "increment") {
+    //   activeId < Object.entries(files).length - 1
+    //     ? (activeId += 1)
+    //     : (activeId = 0);
+    // } else {
+    //   activeId > 0
+    //     ? (activeId -= 1)
+    //     : (activeId = Object.entries(files).length - 1);
+    // }
   }
-
-  Update();
-  Ready();
 
   // let appTitle = $derived(Object.keys(files)[activeId] ?? "ELTE");
 
@@ -342,10 +363,20 @@
     e.preventDefault();
   };
 
+  const shortcutsMap = {
+    saveFile: "s",
+    runCode: "n",
+    createFile: "&",
+    expandFileExplorer: "b",
+    openFile: "é",
+    openDir: `à`,
+    navTabs: "tab",
+  };
+
   window.addEventListener("keydown", (e: KeyboardEvent) => {
     // control key shortcuts
     if (e.ctrlKey || e.metaKey) {
-      if (e.key.toLowerCase() === "s") {
+      if (e.key.toLowerCase() === shortcutsMap.saveFile) {
         e.preventDefault();
         SaveFile();
       }
@@ -353,30 +384,30 @@
 
     if (e.ctrlKey || e.metaKey) {
       if (e.altKey) {
-        if (e.key.toLowerCase() === "n") {
+        if (e.key.toLowerCase() === shortcutsMap.runCode) {
           e.preventDefault();
           RunCode();
         }
-      } else if (e.key.toLowerCase() === "n") {
+      } else if (e.key.toLowerCase() === shortcutsMap.createFile) {
         CreateFile();
       }
     }
 
     if (e.ctrlKey || e.metaKey) {
-      if (e.key.toLowerCase() === "b") {
+      if (e.key.toLowerCase() === shortcutsMap.expandFileExplorer) {
         e.preventDefault();
         ExpandExplorer();
       }
     }
 
     if (e.ctrlKey || e.metaKey) {
-      if (e.key.toLowerCase() === "o") {
+      if (e.key.toLowerCase() === shortcutsMap.openFile) {
         OpenFile();
       }
     }
 
     if (e.ctrlKey || e.metaKey) {
-      if (e.key.toLowerCase() === "k") {
+      if (e.key.toLowerCase() === shortcutsMap.openDir) {
         OpenDir();
       }
     }
@@ -385,14 +416,14 @@
 
     if (e.ctrlKey || e.metaKey) {
       if (e.key.toLowerCase() === "r" || e.key.toLowerCase() === "f5") {
-        // e.preventDefault();
+        e.preventDefault();
       }
     }
 
     if (
       (e.ctrlKey || e.metaKey) &&
       e.shiftKey &&
-      e.key.toLowerCase() === "tab"
+      e.key.toLowerCase() === shortcutsMap.navTabs
     ) {
       e.preventDefault();
       SwitchTabs("decrement");
@@ -458,15 +489,73 @@
     ) as HTMLElement | null;
     const footer = document.querySelector("#pageFooter") as HTMLElement | null;
     if (overl && footer) {
-      const val = footer.offsetHeight + 50;
+      const val = footer.offsetHeight;
       document.body.style.setProperty("--height", val + "px");
     }
   }
 
+  let k = 0;
+
+  function pathExists(structuredFiles: any, path: string): [boolean, number] {
+    for (let i = 0; i < structuredFiles.length; i++) {
+      if (structuredFiles[i].path == path) return [true, i];
+    }
+
+    return [false, 0];
+  }
+
+  function AddFilesStructured(
+    structuredFiles: any,
+    ind: number,
+    i: number,
+    f: any,
+  ) {
+    if (!structuredFiles[ind].files.includes(f[i][0]))
+      structuredFiles[ind].files.push(f[i][0]);
+  }
+
+  function DuplicatePath() {
+    const f = Object.entries(files);
+
+    for (let i = 0; i < f.length; i++) {
+      const exists = pathExists(structuredFiles, f[i][1]);
+      if (exists[0]) {
+        AddFilesStructured(structuredFiles, exists[1], i, f);
+      } else {
+        structuredFiles.push({
+          path: f[i][1],
+          files: [],
+        });
+        AddFilesStructured(structuredFiles, k, i, f);
+        k += 1;
+      }
+    }
+
+    // log(Object.entries(structuredFiles));
+  }
+
+  Update();
+  Ready();
+
   onMount(() => {
     FooterHeight();
     setupCloseListener();
+    setTimeout(() => {Load()}, 100)
+    Load()
   });
+
+  function Load() {
+    const firstFile = document.querySelector(
+      ".filesTreeItemContainer button[data-id]",
+    ) as HTMLElement;
+    if (firstFile) {
+      activeId = firstFile.dataset.id || "Nothing";
+      log("activeid");
+      log(activeId);
+    }
+
+    log(firstFile);
+  }
 
   $effect(() => {
     activeThemeBtn = appTheme.current;
@@ -494,7 +583,9 @@
     localStorage.setItem("activeId", String(activeId));
     localStorage.setItem("expandExplorer", String(expandExplorer));
 
-    activeFile = Object.entries(files)[activeId];
+    activeFile = [activeId, files[activeId]];
+
+    DuplicatePath();
   });
 </script>
 
@@ -686,8 +777,176 @@
                     </ul>
                   </div>
                 {:else}
-                  {#each Object.entries(files) as [name, path], id}
-                    <li class:active={id == activeId}>
+                  <!-- {#each Object.entries(files) as [name, path], id} -->
+                  <!-- {log(Object.entries(structuredFiles))} -->
+                  {#each Object.entries(structuredFiles) as file, id}
+                    {#each [file[1]] as file_obj, id2}
+                      <!-- {log(file[1])} -->
+                      <!-- {log(file_obj.path, Object.entries(file_obj.files))} -->
+                      <ul class="filesTree_PATH">
+                        <li class="folderName">
+                          <button
+                            class="fileIcon icon-btn"
+                            aria-label="file-button"
+                          >
+                            <svg
+                              width="18px"
+                              height="18px"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              xmlns="http://www.w3.org/2000/svg"
+                              ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
+                                id="SVGRepo_tracerCarrier"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                              ></g><g id="SVGRepo_iconCarrier">
+                                <path
+                                  d="M19 10V6C19 5.44772 18.5523 5 18 5H10.0351C9.73195 5 9.44513 4.86245 9.25533 4.62602L8.25023 3.37398C8.06042 3.13755 7.77361 3 7.47042 3H3C2.44772 3 2 3.44772 2 4L2 15C2 15.5523 2.44772 16 3 16H5"
+                                  stroke="#200E32"
+                                  stroke-width="1.44"
+                                ></path>
+                                <path
+                                  d="M5 20V9C5 8.44772 5.44772 8 6 8H10.4704C10.7736 8 11.0604 8.13755 11.2502 8.37398L12.2553 9.62602C12.4451 9.86245 12.7319 10 13.0351 10H21C21.5523 10 22 10.4477 22 11V20C22 20.5523 21.5523 21 21 21H6C5.44772 21 5 20.5523 5 20Z"
+                                  stroke="#200E32"
+                                  stroke-width="1.44"
+                                ></path>
+                              </g></svg
+                            >
+                          </button>
+                          <button>
+                            {file_obj.path.substring(
+                              file_obj.path.lastIndexOf("\\") + 1,
+                            )}
+                          </button>
+                          <svg
+                            width="16px"
+                            height="16px"
+                            viewBox="0 0 24 24"
+                            style="fill: none !important;"
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="svelte-1uha8ag"
+                            ><g
+                              id="SVGRepo_bgCarrier"
+                              stroke-width="0"
+                              class="svelte-1uha8ag"
+                            ></g><g
+                              id="SVGRepo_tracerCarrier"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              class="svelte-1uha8ag"
+                            ></g><g
+                              id="SVGRepo_iconCarrier"
+                              class="svelte-1uha8ag"
+                              ><path
+                                fill-rule="evenodd"
+                                clip-rule="evenodd"
+                                d="M12 7C12.2652 7 12.5196 7.10536 12.7071 7.29289L19.7071 14.2929C20.0976 14.6834 20.0976 15.3166 19.7071 15.7071C19.3166 16.0976 18.6834 16.0976 18.2929 15.7071L12 9.41421L5.70711 15.7071C5.31658 16.0976 4.68342 16.0976 4.29289 15.7071C3.90237 15.3166 3.90237 14.6834 4.29289 14.2929L11.2929 7.29289C11.4804 7.10536 11.7348 7 12 7Z"
+                                fill="#000000"
+                                class="svelte-1uha8ag"
+                              ></path></g
+                            ></svg
+                          >
+                        </li>
+                        {#each Object.entries(file_obj.files) as file_name, id3}
+                          <!-- {log(Array.from(file_name)[1])} -->
+                          <li
+                            class:active={Array.from(file_name)[1] == activeId}
+                            class="filesTreeItemContainer"
+                          >
+                            <button
+                              onmousedown={(e) =>
+                                HandleFileMouseDown(
+                                  e,
+                                  Array.from(file_name)[1],
+                                )}
+                              class="fileIcon icon-btn"
+                              aria-label="file-button"
+                            >
+                              <svg
+                                width="18px"
+                                height="18px"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                ><g id="SVGRepo_bgCarrier" stroke-width="0"
+                                ></g><g
+                                  id="SVGRepo_tracerCarrier"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                ></g><g id="SVGRepo_iconCarrier">
+                                  <path
+                                    d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
+                                    stroke="#000000"
+                                    stroke-width="1.416"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                  ></path>
+                                </g></svg
+                              >
+                            </button>
+                            <button
+                              data-id={Array.from(file_name)[1]}
+                              class="navItem"
+                              class:unsaved={unsavedFiles[
+                                Array.from(file_name)[1]
+                              ]}
+                              // onclick={(e) => HandleFileClick(e, id)}
+                              onclick={(e) =>
+                                HandleFileClick(e, Array.from(file_name)[1])}
+                              title={`${file_obj.path}\\${Array.from(file_name)[1]}`}
+                            >
+                              <span>
+                                {Array.from(file_name)[1]}
+                              </span>
+                            </button>
+                            <button
+                              class="close"
+                              aria-label="close"
+                              data-name={Array.from(file_name)[1]}
+                              onclick={(e) => {
+                                CloseFile(e);
+                              }}
+                            >
+                              <svg
+                                width="14px"
+                                height="14px"
+                                viewBox="-0.5 0 25 25"
+                                fill="none"
+                                xmlns="http://www.w3.org/2000/svg"
+                                ><g id="SVGRepo_bgCarrier" stroke-width="0"
+                                ></g><g
+                                  id="SVGRepo_tracerCarrier"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                ></g><g id="SVGRepo_iconCarrier">
+                                  <path
+                                    d="M3 21.32L21 3.32001"
+                                    stroke="#000000"
+                                    stroke-width="1.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                  ></path>
+                                  <path
+                                    d="M3 3.32001L21 21.32"
+                                    stroke="#000000"
+                                    stroke-width="1.5"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                  ></path>
+                                </g></svg
+                              >
+                            </button>
+                          </li>
+                        {/each}
+                      </ul>
+                    {/each}
+                    <!-- {#if !DuplicatePath(path)} -->
+                    <!-- <ul class="filesTree_PATH">
+                       
+                      </ul> -->
+                    <!-- {:else} -->
+
+                    <!-- <li class:active={id == activeId}>
                       <button
                         onmousedown={(e) => HandleFileMouseDown(e, name)}
                         class="fileIcon icon-btn"
@@ -759,7 +1018,9 @@
                           </g></svg
                         >
                       </button>
-                    </li>
+                    </li>  -->
+
+                    <!-- {/if} -->
                   {/each}
                 {/if}
               </ul>
@@ -925,31 +1186,36 @@
                       <li>
                         <small class="shortcutName">Open File</small>
                         <div class="shortcutKeys">
-                          <code>Ctrl</code> + <code>O</code>
+                          <code>Ctrl</code> +
+                          <code>{shortcutsMap.openFile}</code>
                         </div>
                       </li>
                       <li>
                         <small class="shortcutName">Open Folder</small>
                         <div class="shortcutKeys">
-                          <code>Ctrl</code> + <code>K</code>
+                          <code>Ctrl</code> +
+                          <code>{shortcutsMap.openDir}</code>
                         </div>
                       </li>
                       <li>
                         <small class="shortcutName">Create New File</small>
                         <div class="shortcutKeys">
-                          <code>Ctrl</code> + <code>N</code>
+                          <code>Ctrl</code> +
+                          <code>{shortcutsMap.createFile}</code>
                         </div>
                       </li>
                       <li>
                         <small class="shortcutName">Navigate files</small>
                         <div class="shortcutKeys">
-                          <code>Ctrl</code> + <code>Tab</code>
+                          <code>Ctrl</code> +
+                          <code>{shortcutsMap.navTabs}</code>
                         </div>
                       </li>
                       <li>
                         <small class="shortcutName">Run Code</small>
                         <div class="shortcutKeys">
-                          <code>Ctrl</code> + <code>Alt</code> + <code>N</code>
+                          <code>Ctrl</code> + <code>Alt</code> +
+                          <code>{shortcutsMap.runCode}</code>
                         </div>
                       </li>
                       <li>
@@ -966,12 +1232,12 @@
                       filename={name}
                       dataId={name}
                       content={fileContents[name] ?? ""}
-                      isActive={id == activeId}
+                      isActive={name == activeId}
                       themeName={editorTheme.current}
                       onChange={(value) => {
                         HandleEditorOnChange(name, value);
                       }}
-                      onFocus={() => (activeId = id)}
+                      onFocus={() => (activeId = name)}
                     />
                   {/each}
                 {/if}

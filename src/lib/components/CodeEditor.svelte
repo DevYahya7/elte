@@ -216,6 +216,8 @@
     yml: yaml,
 
     svelte: html,
+    jsx: html,
+    tsx: html,
 
     algo: python,
   };
@@ -476,6 +478,8 @@
 
   :global(.cm-gutterElement) {
     opacity: 0.7;
+    user-select: none;
+    -moz-user-select: none;
   }
 
   :global(.cm-gutters.cm-gutters-before) {
@@ -484,4 +488,5 @@
   :global(.cm-gutter) {
     overflow: visible !important;
   }
+
 </style>

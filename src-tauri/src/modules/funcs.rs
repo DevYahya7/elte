@@ -70,7 +70,7 @@ pub fn get_files(app: AppHandle) -> Result<String, String> {
 }
 
 #[tauri::command]
-pub fn add_file(app: AppHandle, file: FromFile, mut create_new: bool) -> Result<(), String> {
+pub fn add_file(app: AppHandle, mut file: FromFile, mut create_new: bool) -> Result<(), String> {
     let target_path = Path::new(&file.path).join(&file.name);
 
     // println!("target {:?}", target_path);
@@ -78,8 +78,7 @@ pub fn add_file(app: AppHandle, file: FromFile, mut create_new: bool) -> Result<
     if let Some(parent) = target_path.parent() {
         if !parent.exists() {
             create_dir_all(parent).map_err(|e| e.to_string())?;
-        }
-        else {
+        } else {
             let rd = read_dir(parent).map_err(|e| e.to_string())?;
             for dir_file in rd {
                 let entry = dir_file.map_err(|e| e.to_string())?;
