@@ -448,7 +448,7 @@
 
     const newWindow = new WebviewWindow("newWindow", {
       url: `/new?path=${path}`,
-      title: `${file[1]}\\${file[0]} - ELTE`,
+      title: `${file[1]}\\${file[0]} - ACE`,
       width: 1200,
       height: 600,
       resizable: true,
@@ -484,8 +484,6 @@
       }
     }
   }
-
-  // let appTitle = $derived(Object.keys(files)[activeId] ?? "ELTE");
 
   document.body.oncontextmenu = (e) => {
     e.preventDefault();
@@ -1412,7 +1410,7 @@
         </div>
         <button
           class="link"
-          onclick={() => OpenLink("https://github.com/DevYahya7/elte.git")}
+          onclick={() => OpenLink("https://github.com/codeyahya/ace")}
         >
           <small> GitHub </small>
           <svg
