@@ -22,9 +22,40 @@
   import { ask, message } from "@tauri-apps/plugin-dialog";
   import { form } from "$app/server";
 
+  import angularIcon from "$lib/assets/angularIcon.png";
+  import asmIcon from "$lib/assets/asmIcon.png";
+  import cIcon from "$lib/assets/cIcon.png";
+  import cppIcon from "$lib/assets/cppIcon.png";
+  import csIcon from "$lib/assets/csIcon.png";
+  import cssIcon from "$lib/assets/cssIcon.png";
+  import dartIcon from "$lib/assets/dartIcon.png";
+  import dockerIcon from "$lib/assets/dockerIcon.png";
+  import goIcon from "$lib/assets/goIcon.png";
+  import htmlIcon from "$lib/assets/htmlIcon.png";
+  import javaIcon from "$lib/assets/javaIcon.png";
+  import jsIcon from "$lib/assets/jsIcon.png";
+  import jsonIcon from "$lib/assets/jsonIcon.png";
+  import jsxIcon from "$lib/assets/jsxIcon.png";
+  import ktIcon from "$lib/assets/ktIcon.png";
+  import luaIcon from "$lib/assets/luaIcon.png";
+  import phpIcon from "$lib/assets/phpIcon.png";
+  import ps1Icon from "$lib/assets/ps1Icon.png";
+  import pyIcon from "$lib/assets/pyIcon.png";
+  import rbIcon from "$lib/assets/rbIcon.png";
+  import rsIcon from "$lib/assets/rsIcon.png";
+  import svelteIcon from "$lib/assets/svelteIcon.png";
+  import swiftIcon from "$lib/assets/swiftIcon.png";
+  import tsIcon from "$lib/assets/tsIcon.png";
+  import vueIcon from "$lib/assets/vueIcon.png";
+  import txtIcon from "$lib/assets/txtIcon.png";
+  import pdfIcon from "$lib/assets/pdfIcon.png";
+  import mp3Icon from "$lib/assets/mp3Icon.png";
+  import exeIcon from "$lib/assets/exeIcon.png";
+  import imageIcon from "$lib/assets/imageIcon.png";
+
   const log = console.log;
 
-  const APP_TITLE = "Extremely Lightweight Text Editor";
+  const APP_TITLE = "Awesome Code Editor";
 
   interface FromFile {
     name: string | undefined;
@@ -40,6 +71,7 @@
   // Reactive state
   const structuredFiles: any = $state([]);
   let files = $state<Record<string, string>>({});
+  let lastActiveFiles = $state<string[]>([]);
   let fileContents = $state<Record<string, string>>({});
   let unsavedFiles = $state<Record<string, boolean>>({});
 
@@ -49,9 +81,14 @@
     settingsMenu: false,
   });
 
-  let expandExplorer = $state(
-    Boolean(localStorage.getItem("expandExplorer")) ?? true,
+  let expandExplorer = $state<boolean>(
+    localStorage.getItem("expandExplorer")
+      ? localStorage.getItem("expandExplorer") == "true"
+      : true,
   );
+
+  let lastFilesActive = $state<boolean>(false);
+  let lastFiles_activeElem = $state<number>(0);
 
   // let activeId = $state(
   //   localStorage.getItem("activeId")
@@ -72,6 +109,84 @@
     target: null as any,
   });
 
+  const ICONS: Record<string, string> = {
+    // Web & Frameworks
+    html: htmlIcon,
+    htm: htmlIcon,
+    xhtml: htmlIcon,
+    css: cssIcon,
+    scss: cssIcon,
+    less: cssIcon,
+    js: jsIcon,
+    mjs: jsIcon,
+    cjs: jsIcon,
+    ts: tsIcon,
+    jsx: jsxIcon,
+    tsx: tsIcon,
+    svelte: svelteIcon,
+    vue: vueIcon,
+    angular: angularIcon,
+    php: phpIcon,
+
+    // Systems & Programming
+    c: cIcon,
+    h: cIcon,
+    cpp: cppIcon,
+    hpp: cppIcon,
+    cc: cppIcon,
+    cxx: cppIcon,
+    cs: csIcon,
+    csx: csIcon,
+    java: javaIcon,
+    jar: javaIcon,
+    py: pyIcon,
+    pyw: pyIcon,
+    rs: rsIcon,
+    go: goIcon,
+    swift: swiftIcon,
+    kt: ktIcon,
+    kts: ktIcon,
+    rb: rbIcon,
+    lua: luaIcon,
+    dart: dartIcon,
+
+    // Data & Shell
+    json: jsonIcon,
+    jsonc: jsonIcon,
+    ps1: ps1Icon,
+    asm: asmIcon,
+    s: asmIcon,
+    dockerfile: dockerIcon,
+    docker: dockerIcon,
+
+    txt: txtIcon,
+    log: txtIcon,
+    pdf: pdfIcon,
+
+    // Multimédia
+    mp3: mp3Icon,
+    wav: mp3Icon,
+    ogg: mp3Icon,
+
+    // Exécutables et Binaires
+    exe: exeIcon,
+    msi: exeIcon,
+    bin: exeIcon,
+    bat: exeIcon,
+    cmd: exeIcon,
+
+    png: imageIcon,
+    jpg: imageIcon,
+    jpeg: imageIcon,
+    gif: imageIcon,
+    svg: imageIcon,
+    webp: imageIcon,
+    bmp: imageIcon,
+    ico: imageIcon,
+    avif: imageIcon,
+    tiff: imageIcon,
+  };
+
   async function CreateFile() {
     try {
       const file: {
@@ -91,6 +206,8 @@
 
       await invoke("add_file", { file: file, createNew: true });
       await GetFiles();
+      activeId = Object.entries(files)[Object.entries(files).length - 1][0];
+      ScrollIntoFile()
     } catch (e) {
       console.error("Error opening file:", e);
       await message("File already exists", {
@@ -120,7 +237,6 @@
         const fileName = filePath.split(/[/\\]/).pop() || "";
 
         filePath = filePath.substring(0, filePath.lastIndexOf("\\"));
-        log(filePath);
 
         await invoke("open_file", {
           filePath: filePath,
@@ -130,6 +246,7 @@
         await GetFiles();
 
         activeId = Object.entries(files)[Object.entries(files).length - 1][0];
+        ScrollIntoFile()
       }
     } catch (error) {
       alert(error);
@@ -149,6 +266,8 @@
     const strFiles = await invoke<string>("get_files");
     files = JSON.parse(strFiles);
 
+    lastActiveFiles = [];
+
     const entries = Object.entries(files);
     for (let i = 0; i < entries.length; i++) {
       const [fileName] = entries[i];
@@ -156,10 +275,13 @@
         await ReadFromFile(i);
         await SaveFile(i);
       }
+
+      lastActiveFiles.push(fileName);
     }
   }
 
-  async function HandleFileMouseDown(e: any, fileName: string) {
+  async function HandleFileMouseDown(e: MouseEvent, fileName: string) {
+    const target = e.currentTarget as HTMLElement;
     if (e.button == 1) {
       // Middle click: Delete file
       const ok = await ask(`Are you sure you want to delete ${fileName} ?`, {
@@ -170,6 +292,7 @@
       });
 
       if (ok) {
+        target.style.display = "none";
         await invoke("delete_file", { fileName: fileName, erase: true });
         // Clean local state
         delete fileContents[fileName];
@@ -179,19 +302,18 @@
         //   activeId = Math.max(0, Object.keys(files).length - 1);
         // }
         activeId = Object.entries(files)[0][0];
-        e.currentTarget.parentElement.style.display = "none";
+        DuplicatePath();
 
-        log(fileName);
+        // log(fileName);
       }
     } else if (e.button == 2) {
       // Right click: Open in explorer
       const filePath = files[fileName];
       await invoke("open_in_explorer", { filePath: filePath });
     } else if (e.button == 0) {
-      const target = e.currentTarget as HTMLElement | null;
       if (target && target.parentElement) {
-        moveFilesOrder.move = true;
-        moveFilesOrder.target = target.parentElement;
+        // moveFilesOrder.move = true;
+        // moveFilesOrder.target = target.parentElement;
       }
     }
   }
@@ -212,7 +334,9 @@
 
     try {
       const [fileName] = file;
-      const content: string = await invoke("read_file_content", { file: file });
+      const content: string = await invoke("read_file_content", {
+        file: file,
+      });
 
       fileContents = {
         ...fileContents,
@@ -230,6 +354,8 @@
       ReadFromFile();
     }
 
+    log(Object.entries(structuredFiles));
+
     lang = document.querySelector(
       `.codemirror-wrapper[data-id='${e.currentTarget.dataset.id}'] .cm-content`,
     );
@@ -237,7 +363,7 @@
       lang = lang.dataset.language;
     }
 
-    log(e.currentTarget.dataset.id);
+    // log(e.currentTarget.dataset.id);
   }
 
   async function SaveFile(ind?: number) {
@@ -248,7 +374,7 @@
     const [fileName] = file;
     const content = fileContents[fileName] ?? "";
 
-    log(file);
+    // log(file);
 
     await invoke("save_file", { file: file, content: content });
     unsavedFiles[fileName] = false;
@@ -346,15 +472,17 @@
   }
 
   function SwitchTabs(mode: "increment" | "decrement") {
-    // if (mode == "increment") {
-    //   activeId < Object.entries(files).length - 1
-    //     ? (activeId += 1)
-    //     : (activeId = 0);
-    // } else {
-    //   activeId > 0
-    //     ? (activeId -= 1)
-    //     : (activeId = Object.entries(files).length - 1);
-    // }
+    if (mode == "increment") {
+      lastFiles_activeElem += 1;
+      if (lastFiles_activeElem > lastActiveFiles.length - 1) {
+        lastFiles_activeElem = 0;
+      }
+    } else if (mode == "decrement") {
+      lastFiles_activeElem -= 1;
+      if (lastFiles_activeElem < 0) {
+        lastFiles_activeElem = lastActiveFiles.length - 1;
+      }
+    }
   }
 
   // let appTitle = $derived(Object.keys(files)[activeId] ?? "ELTE");
@@ -373,10 +501,15 @@
     navTabs: "tab",
   };
 
-  window.addEventListener("keydown", (e: KeyboardEvent) => {
+  let isTabDown = false;
+  let isModifierDown = false;
+
+  function KeyShortcuts(e: KeyboardEvent) {
     // control key shortcuts
+    const key = e.key.toLowerCase();
+
     if (e.ctrlKey || e.metaKey) {
-      if (e.key.toLowerCase() === shortcutsMap.saveFile) {
+      if (key === shortcutsMap.saveFile) {
         e.preventDefault();
         SaveFile();
       }
@@ -384,30 +517,30 @@
 
     if (e.ctrlKey || e.metaKey) {
       if (e.altKey) {
-        if (e.key.toLowerCase() === shortcutsMap.runCode) {
+        if (key === shortcutsMap.runCode) {
           e.preventDefault();
           RunCode();
         }
-      } else if (e.key.toLowerCase() === shortcutsMap.createFile) {
+      } else if (key === shortcutsMap.createFile) {
         CreateFile();
       }
     }
 
     if (e.ctrlKey || e.metaKey) {
-      if (e.key.toLowerCase() === shortcutsMap.expandFileExplorer) {
+      if (key === shortcutsMap.expandFileExplorer) {
         e.preventDefault();
         ExpandExplorer();
       }
     }
 
     if (e.ctrlKey || e.metaKey) {
-      if (e.key.toLowerCase() === shortcutsMap.openFile) {
+      if (key === shortcutsMap.openFile) {
         OpenFile();
       }
     }
 
     if (e.ctrlKey || e.metaKey) {
-      if (e.key.toLowerCase() === shortcutsMap.openDir) {
+      if (key === shortcutsMap.openDir) {
         OpenDir();
       }
     }
@@ -415,23 +548,54 @@
     // window
 
     if (e.ctrlKey || e.metaKey) {
-      if (e.key.toLowerCase() === "r" || e.key.toLowerCase() === "f5") {
+      if (key === "r" || key === "f5") {
         e.preventDefault();
       }
     }
 
+    if (e.key === "Control" || e.key === "Meta") isModifierDown = true;
+    if (key === shortcutsMap.navTabs.toLowerCase()) isTabDown = true;
+
     if (
       (e.ctrlKey || e.metaKey) &&
       e.shiftKey &&
-      e.key.toLowerCase() === shortcutsMap.navTabs
+      key === shortcutsMap.navTabs
     ) {
       e.preventDefault();
+      lastFilesActive = true;
       SwitchTabs("decrement");
-    } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "tab") {
+    } else if ((e.ctrlKey || e.metaKey) && key === shortcutsMap.navTabs) {
       e.preventDefault();
+      lastFilesActive = true;
       SwitchTabs("increment");
     }
-  });
+  }
+
+  function KeyShortcutsUp(e: KeyboardEvent) {
+    const key = e.key.toLowerCase();
+
+    if (e.key === "Control" || e.key === "Meta") isModifierDown = false;
+    if (key === shortcutsMap.navTabs.toLowerCase()) isTabDown = false;
+
+    if (!isModifierDown && !isTabDown && lastFilesActive) {
+      lastFilesActive = false;
+      activeId = lastActiveFiles[lastFiles_activeElem];
+      ScrollIntoFile();
+    }
+  }
+
+  function ScrollIntoFile() {
+    const fileItem = document.querySelector(
+      `.filesTreeItemContainer button[data-id="${activeId}"]`,
+    )?.parentElement;
+
+    if (fileItem?.parentElement?.classList.contains("wrap"))
+      fileItem?.parentElement?.classList.remove("wrap");
+
+    fileItem?.scrollIntoView({
+      behavior: "smooth",
+    });
+  }
 
   async function setupCloseListener() {
     await appWindow.onCloseRequested(async (e) => {
@@ -534,28 +698,24 @@
     // log(Object.entries(structuredFiles));
   }
 
+  function WrapFolder(e: MouseEvent) {
+    const target = e.currentTarget as HTMLElement;
+    target.parentElement?.style.setProperty("--ht", target.offsetHeight + "px");
+    target.parentElement?.classList.toggle("wrap");
+
+    localStorage.setItem(
+      `folder${target.dataset.id}` || "",
+      String(target.parentElement?.classList.contains("wrap")),
+    );
+  }
+
   Update();
   Ready();
 
   onMount(() => {
     FooterHeight();
     setupCloseListener();
-    setTimeout(() => {Load()}, 100)
-    Load()
   });
-
-  function Load() {
-    const firstFile = document.querySelector(
-      ".filesTreeItemContainer button[data-id]",
-    ) as HTMLElement;
-    if (firstFile) {
-      activeId = firstFile.dataset.id || "Nothing";
-      log("activeid");
-      log(activeId);
-    }
-
-    log(firstFile);
-  }
 
   $effect(() => {
     activeThemeBtn = appTheme.current;
@@ -580,7 +740,7 @@
         });
     }
 
-    localStorage.setItem("activeId", String(activeId));
+    localStorage.setItem("activeId", activeId);
     localStorage.setItem("expandExplorer", String(expandExplorer));
 
     activeFile = [activeId, files[activeId]];
@@ -592,7 +752,11 @@
 <svelte:head>
   <!-- <title>{appTitle}</title> -->
 </svelte:head>
-<svelte:window onresize={FooterHeight} />
+<svelte:window
+  onresize={FooterHeight}
+  onkeydown={KeyShortcuts}
+  onkeyup={KeyShortcutsUp}
+/>
 
 <div id="container">
   <div class="content">
@@ -777,21 +941,27 @@
                     </ul>
                   </div>
                 {:else}
-                  <!-- {#each Object.entries(files) as [name, path], id} -->
-                  <!-- {log(Object.entries(structuredFiles))} -->
                   {#each Object.entries(structuredFiles) as file, id}
                     {#each [file[1]] as file_obj, id2}
-                      <!-- {log(file[1])} -->
-                      <!-- {log(file_obj.path, Object.entries(file_obj.files))} -->
-                      <ul class="filesTree_PATH">
-                        <li class="folderName">
+                      <ul
+                        class="filesTree_PATH"
+                        class:wrap={localStorage.getItem(`folder${id}`) ==
+                          "true"}
+                      >
+                        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <li
+                          class="folderName"
+                          onclick={WrapFolder}
+                          data-id={id}
+                        >
                           <button
                             class="fileIcon icon-btn"
                             aria-label="file-button"
                           >
                             <svg
-                              width="18px"
-                              height="18px"
+                              width="21px"
+                              height="21px"
                               viewBox="0 0 24 24"
                               fill="none"
                               xmlns="http://www.w3.org/2000/svg"
@@ -801,19 +971,16 @@
                                 stroke-linejoin="round"
                               ></g><g id="SVGRepo_iconCarrier">
                                 <path
-                                  d="M19 10V6C19 5.44772 18.5523 5 18 5H10.0351C9.73195 5 9.44513 4.86245 9.25533 4.62602L8.25023 3.37398C8.06042 3.13755 7.77361 3 7.47042 3H3C2.44772 3 2 3.44772 2 4L2 15C2 15.5523 2.44772 16 3 16H5"
-                                  stroke="#200E32"
+                                  d="M3 17V7C3 5.89543 3.89543 5 5 5H9.58579C9.851 5 10.1054 5.10536 10.2929 5.29289L12 7H19C20.1046 7 21 7.89543 21 9V17C21 18.1046 20.1046 19 19 19H5C3.89543 19 3 18.1046 3 17Z"
+                                  stroke="#000000"
                                   stroke-width="1.44"
-                                ></path>
-                                <path
-                                  d="M5 20V9C5 8.44772 5.44772 8 6 8H10.4704C10.7736 8 11.0604 8.13755 11.2502 8.37398L12.2553 9.62602C12.4451 9.86245 12.7319 10 13.0351 10H21C21.5523 10 22 10.4477 22 11V20C22 20.5523 21.5523 21 21 21H6C5.44772 21 5 20.5523 5 20Z"
-                                  stroke="#200E32"
-                                  stroke-width="1.44"
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
                                 ></path>
                               </g></svg
                             >
                           </button>
-                          <button>
+                          <button class="folderNameText">
                             {file_obj.path.substring(
                               file_obj.path.lastIndexOf("\\") + 1,
                             )}
@@ -824,7 +991,7 @@
                             viewBox="0 0 24 24"
                             style="fill: none !important;"
                             xmlns="http://www.w3.org/2000/svg"
-                            class="svelte-1uha8ag"
+                            class="svelte-1uha8ag drop"
                             ><g
                               id="SVGRepo_bgCarrier"
                               stroke-width="0"
@@ -848,42 +1015,48 @@
                           >
                         </li>
                         {#each Object.entries(file_obj.files) as file_name, id3}
-                          <!-- {log(Array.from(file_name)[1])} -->
+                          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
                           <li
                             class:active={Array.from(file_name)[1] == activeId}
                             class="filesTreeItemContainer"
+                            onmousedown={(e) =>
+                              HandleFileMouseDown(e, Array.from(file_name)[1])}
                           >
-                            <button
-                              onmousedown={(e) =>
-                                HandleFileMouseDown(
-                                  e,
-                                  Array.from(file_name)[1],
-                                )}
-                              class="fileIcon icon-btn"
-                              aria-label="file-button"
-                            >
-                              <svg
-                                width="18px"
-                                height="18px"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                xmlns="http://www.w3.org/2000/svg"
-                                ><g id="SVGRepo_bgCarrier" stroke-width="0"
-                                ></g><g
-                                  id="SVGRepo_tracerCarrier"
-                                  stroke-linecap="round"
-                                  stroke-linejoin="round"
-                                ></g><g id="SVGRepo_iconCarrier">
-                                  <path
-                                    d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
-                                    stroke="#000000"
-                                    stroke-width="1.416"
+                            <div class="fileIcon baseBtn">
+                              {#if ICONS[`${Array.from(file_name)[1].substring(Array.from(file_name)[1].lastIndexOf(".") + 1)}`]}
+                                <img
+                                  src={ICONS[
+                                    `${Array.from(file_name)[1].substring(Array.from(file_name)[1].lastIndexOf(".") + 1)}`
+                                  ]}
+                                  alt=""
+                                />
+                              {:else}
+                                <svg
+                                  width="18px"
+                                  height="18px"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  style="fill: none !important;"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  ><g id="SVGRepo_bgCarrier" stroke-width="0"
+                                  ></g><g
+                                    id="SVGRepo_tracerCarrier"
                                     stroke-linecap="round"
                                     stroke-linejoin="round"
-                                  ></path>
-                                </g></svg
-                              >
-                            </button>
+                                    style="fill: none !important;"
+                                  ></g><g id="SVGRepo_iconCarrier">
+                                    <path
+                                      d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
+                                      stroke="#000000"
+                                      stroke-width="1.416"
+                                      stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      style="fill: none !important;"
+                                    ></path>
+                                  </g></svg
+                                >
+                              {/if}
+                            </div>
                             <button
                               data-id={Array.from(file_name)[1]}
                               class="navItem"
@@ -940,87 +1113,6 @@
                         {/each}
                       </ul>
                     {/each}
-                    <!-- {#if !DuplicatePath(path)} -->
-                    <!-- <ul class="filesTree_PATH">
-                       
-                      </ul> -->
-                    <!-- {:else} -->
-
-                    <!-- <li class:active={id == activeId}>
-                      <button
-                        onmousedown={(e) => HandleFileMouseDown(e, name)}
-                        class="fileIcon icon-btn"
-                        aria-label="file-button"
-                      >
-                        <svg
-                          width="18px"
-                          height="18px"
-                          viewBox="0 0 24 24"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
-                            id="SVGRepo_tracerCarrier"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          ></g><g id="SVGRepo_iconCarrier">
-                            <path
-                              d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
-                              stroke="#000000"
-                              stroke-width="1.416"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            ></path>
-                          </g></svg
-                        >
-                      </button>
-                      <button
-                        data-id={name}
-                        class="navItem"
-                        class:unsaved={unsavedFiles[name]}
-                        onclick={(e) => HandleFileClick(e, id)}
-                        title={`${path}\\${name}`}
-                      >
-                        <span> {name} </span>
-                      </button>
-                      <button
-                        class="close"
-                        aria-label="close"
-                        onclick={(e) => {
-                          CloseFile(e);
-                        }}
-                        data-name={name}
-                      >
-                        <svg
-                          width="14px"
-                          height="14px"
-                          viewBox="-0.5 0 25 25"
-                          fill="none"
-                          xmlns="http://www.w3.org/2000/svg"
-                          ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
-                            id="SVGRepo_tracerCarrier"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                          ></g><g id="SVGRepo_iconCarrier">
-                            <path
-                              d="M3 21.32L21 3.32001"
-                              stroke="#000000"
-                              stroke-width="1.5"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            ></path>
-                            <path
-                              d="M3 3.32001L21 21.32"
-                              stroke="#000000"
-                              stroke-width="1.5"
-                              stroke-linecap="round"
-                              stroke-linejoin="round"
-                            ></path>
-                          </g></svg
-                        >
-                      </button>
-                    </li>  -->
-
-                    <!-- {/if} -->
                   {/each}
                 {/if}
               </ul>
@@ -1243,6 +1335,62 @@
                 {/if}
               </div>
               <div class="footeroverlay"></div>
+            </div>
+          </div>
+
+          <div class="lastActiveDialog" class:activeDialog={lastFilesActive}>
+            <div class="lastActive">
+              <ul>
+                {#each lastActiveFiles as lastActiveFile, id}
+                  <li>
+                    <button
+                      class="ite"
+                      class:activeElem={lastFiles_activeElem == id}
+                      onmouseover={() => (lastFiles_activeElem = id)}
+                      onfocus={() => {}}
+                      title={lastActiveFile}
+                    >
+                      <div class="fileIcon baseBtn">
+                        {#if ICONS[`${lastActiveFile.substring(lastActiveFile.lastIndexOf(".") + 1)}`]}
+                          <img
+                            src={ICONS[
+                              `${lastActiveFile.substring(lastActiveFile.lastIndexOf(".") + 1)}`
+                            ]}
+                            alt=""
+                          />
+                        {:else}
+                          <svg
+                            width="18px"
+                            height="18px"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            style="fill: none !important;"
+                            xmlns="http://www.w3.org/2000/svg"
+                            ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
+                              id="SVGRepo_tracerCarrier"
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              style="fill: none !important;"
+                            ></g><g id="SVGRepo_iconCarrier">
+                              <path
+                                d="M19 9V17.8C19 18.9201 19 19.4802 18.782 19.908C18.5903 20.2843 18.2843 20.5903 17.908 20.782C17.4802 21 16.9201 21 15.8 21H8.2C7.07989 21 6.51984 21 6.09202 20.782C5.71569 20.5903 5.40973 20.2843 5.21799 19.908C5 19.4802 5 18.9201 5 17.8V6.2C5 5.07989 5 4.51984 5.21799 4.09202C5.40973 3.71569 5.71569 3.40973 6.09202 3.21799C6.51984 3 7.0799 3 8.2 3H13M19 9L13 3M19 9H14C13.4477 9 13 8.55228 13 8V3"
+                                stroke="#000000"
+                                stroke-width="1.416"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                style="fill: none !important;"
+                              ></path>
+                            </g></svg
+                          >
+                        {/if}
+                      </div>
+                      <span>
+                        {lastActiveFile}
+                      </span>
+                    </button>
+                  </li>
+                {/each}
+              </ul>
             </div>
           </div>
         </div>

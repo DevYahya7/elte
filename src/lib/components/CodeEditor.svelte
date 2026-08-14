@@ -177,15 +177,25 @@
     throw new Error("ThemeError : Could not find theme.");
   }
 
-  // ... in your getLanguageSupport function
   const langMap: Record<string, () => any> = {
+    // Web Core
     js: javascript,
+    mjs: javascript,
+    cjs: javascript,
     ts: javascript,
 
-    py: python,
+    // FIX: jsx and tsx should use the javascript/typescript engine, not HTML
+    jsx: () => javascript({ jsx: true }),
+    tsx: () => javascript({ jsx: true, typescript: true }),
 
+    // Python
+    py: python,
+    pyw: python,
+
+    // Rust
     rs: rust,
 
+    // C / C++ (All use the cpp package)
     c: cpp,
     h: cpp,
     cpp: cpp,
@@ -195,31 +205,48 @@
     hh: cpp,
     hxx: cpp,
 
+    // Java
     java: java,
 
+    // C#
     cs: csharp,
+    csx: csharp,
 
+    // PHP
     php: php,
+    phtml: php,
 
+    // HTML & Templates
     html: html,
     htm: html,
+    xhtml: html,
+    svelte: html, // Fallback to HTML highlighting
+    vue: html, // Fallback to HTML highlighting
+    angular: html,
 
+    // CSS & Styling
     css: css,
+    scss: css,
+    less: css,
 
-    sql: sql,
-
-    go: go,
-
+    // Data & Config
     json: json,
-
     yaml: yaml,
     yml: yaml,
 
-    svelte: html,
-    jsx: html,
-    tsx: html,
+    // Database & Systems
+    sql: sql,
+    go: go,
 
-    algo: python,
+    // Others from your icon list (Falling back to similar syntax)
+    rb: python, // Ruby looks similar to Python to a basic highlighter
+    swift: rust, // Swift looks similar to Rust
+    kt: java, // Kotlin looks similar to Java
+    lua: python, // Lua looks similar to Python
+    dart: javascript,
+
+    // Your French Algorithm
+    algo: python, // You chose Python earlier; it works well for indentation
   };
 
   async function getLanguageSupport(fileName: string) {
@@ -488,5 +515,4 @@
   :global(.cm-gutter) {
     overflow: visible !important;
   }
-
 </style>

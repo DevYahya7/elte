@@ -6,6 +6,10 @@ node_modules/
 target/
 src-tauri/target/
 notes.txt
+src/lib/shortcuts.svelte.ts
+src/lib/index.svelte.ts
+src/lib/fileHandling.svelte.ts
+src/lib/backup.svelte.ts
 
 # Environment & OS files
 .env

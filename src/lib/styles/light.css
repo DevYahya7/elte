@@ -103,6 +103,20 @@ body[data-theme="light"] {
         }
       }
 
+      .lastActiveDialog {
+        background: rgb(0, 0, 0, 0.03);
+
+        button.ite {
+          &:hover {
+            background: rgb(0, 0, 0, .08);
+          }
+
+          &.activeElem {
+            background: rgb(0, 0, 0, .08);
+          }
+        }
+      }
+
       .editCnt {
         border-right-color: rgb(0, 0, 0, 0.1);
       }

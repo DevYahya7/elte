@@ -10,7 +10,7 @@ use std::{
 static cmd_start: [&str; 8] = [
     "/c",
     "start",
-    "powershell",
+    "pwsh",
     "-NoExit",
     "-NoProfile",
     "-ExecutionPolicy",
@@ -244,6 +244,18 @@ pub fn run_code(file: [&str; 2]) -> Result<(), String> {
                 .arg(format!(
                     "powershell -ExecutionPolicy Bypass -File '{}'",
                     file_name
+                ))
+                .spawn()
+                .map_err(|e| e.to_string())?;
+        }
+
+        ".asm" => {
+            Command::new("cmd")
+                .current_dir(file_dir)
+                .args(cmd_start)
+                .arg(format!(
+                    "nasm -f win64 {} -o {}.obj ; gcc {}.obj -o {}.exe; .\\{}.exe",
+                    file_name, file_name_without_ext, file_name_without_ext, file_name_without_ext, file_name_without_ext
                 ))
                 .spawn()
                 .map_err(|e| e.to_string())?;

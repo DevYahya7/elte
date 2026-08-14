@@ -7627,7 +7627,7 @@ export function GetKeywords() {
       testing Test Benchmark Example
     `.split(/\s+/),
 
-    kotlin: `
+    kt: `
       as break class continue do else false for fun if in interface is null object
       package return super this throw true try typealias typeof val var when while
       by catch constructor delegate dynamic field file finally get import init
@@ -8351,5 +8351,47 @@ export function GetKeywords() {
   majus
   effacer
 `.split(/\s+/),
+    asm: `
+      rax rbx rcx rdx rsi rdi rbp rsp r8 r9 r10 r11 r12 r13 r14 r15
+      eax ebx ecx edx esi edi ebp esp r8d r9d r10d r11d r12d r13d r14d r15d
+      ax bx cx dx si di bp sp r8w r9w r10w r11w r12w r13w r14w r15w
+      al bl cl dl sil dil bpl spl r8b r9b r10b r11b r12b r13b r14b r15b
+      ah bh ch dh
+
+      cs ds ss es fs gs eip rip eflags rflags
+      cr0 cr2 cr3 cr4 cr8 dr0 dr1 dr2 dr3 dr6 dr7
+      st0 st1 st2 st3 st4 st5 st6 st7
+      mm0 mm1 mm2 mm3 mm4 mm5 mm6 mm7
+      xmm0 xmm1 xmm2 xmm3 xmm4 xmm5 xmm6 xmm7 xmm8 xmm9 xmm10 xmm11 xmm12 xmm13 xmm14 xmm15
+      ymm0 ymm1 ymm2 ymm3 ymm4 ymm5 ymm6 ymm7 ymm8 ymm9 ymm10 ymm11 ymm12 ymm13 ymm14 ymm15
+      zmm0 zmm1 zmm2 zmm3 zmm4 zmm5 zmm6 zmm7 zmm8 zmm9 zmm10 zmm11 zmm12 zmm13 zmm14 zmm15
+
+      mov movzx movsx movabs lea xchg cmov cmove cmovne cmovg cmovge cmovl cmovle 
+      cmova cmovae cmovb cmovbe cmovs cmovns cmovz cmovnz cmovo cmovno cmovp cmovnp
+      push pop pushad popad pushfd popfd
+
+      add sub mul imul div idiv inc dec neg adc sbb
+      and or xor not test shl shr sal sar rol ror rcl rcr
+      bt bts btr btc bsf bsr
+
+      cmp test jmp call ret je jne jz jnz jg jge jl jle ja jae jb jbe 
+      js jns jo jno jp jnp jecxz jrcxz loop loope loopne
+      enter leave
+
+      movsb movsw movsd movsq lodsb lodsw lodsd lodsq stosb stosw stosd stosq
+      cmpsb cmpsw cmpsd cmpsq scasb scasw scasd scasq
+      rep repe repne repz repnz
+
+      fld fst fstp fadd fsub fmul fdiv fcom fcomp finit fldz fld1
+      addps subps mulps divps xorps andps andnps orps movaps movups
+      addss subss mulss divss xorpx movss
+
+      int syscall sysenter sysexit hlt nop cpuid rdtsc rdtscp
+      clc stc cli sti cld std
+      in out ins outs
+
+      section segment global extern db dw dd dq dt resb resw resd resq rest
+      equ times macro endm include bits org align ptr byte word dword qword tword
+    `.split(/\s+/),
   };
 }

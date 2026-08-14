@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "ELTE",
-  "version": "0.4.0",
-  "identifier": "ExtremelyLightweightTextEditor",
+  "productName": "Awesome Code Editor",
+  "version": "0.4.1",
+  "identifier": "AwesomeCodeEditor",
   "build": {
     "frontendDist": "../build",
     "devUrl": "http://localhost:9975",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "Extremely Lightweight Text Editor",
+        "title": "Awesome Code Editor",
         "width": 1200,
         "height": 600,
         "minWidth": 300,

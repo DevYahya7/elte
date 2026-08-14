@@ -92,6 +92,9 @@ body[data-theme="dark"] {
           svg * {
             stroke: white;
           }
+          &:hover {
+            background: rgb(255, 255, 255, 0.2);
+          }
         }
       }
 
@@ -112,6 +115,20 @@ body[data-theme="dark"] {
       .editorArea {
         button {
           background: transparent;
+        }
+      }
+
+      .lastActiveDialog {
+        background: rgb(255, 255, 255, 0.01);
+
+        button.ite {
+          &:hover {
+            background: rgb(255, 255, 255, 0.1);
+          }
+
+          &.activeElem {
+            background: rgb(255, 255, 255, 0.1);
+          }
         }
       }
 

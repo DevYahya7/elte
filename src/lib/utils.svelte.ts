@@ -87,7 +87,6 @@ export function Update() {
     const theme = appTheme.current;
     // console.log(theme);
     let div = document.querySelector(".ͼ1");
-    console.log(div);
     if (div)
       document.body.style.setProperty("--bg", localStorage.getItem("bg") ?? "");
     else
