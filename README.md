@@ -8,7 +8,7 @@ ACE is a lightweight and modern code editor for Windows, built to be fast, simpl
 
 ### Editor
 
-![ACE Editor](./screenshots/editor.png)
+![ACE Editor](./screenshots/editor1.png)
 ![ACE Editor](./screenshots/editorLight.png)
 ![ACE Editor](./screenshots/editorDark.png)
 
