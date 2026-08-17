@@ -10,6 +10,7 @@
 
   // 1. Import autocompletion tools
   import { autocompletion, completeAnyWord } from "@codemirror/autocomplete";
+  import { indentationMarkers } from "@replit/codemirror-indentation-markers";
 
   import { lightThemes, darkThemes, Update } from "$lib/utils.svelte";
 
@@ -73,6 +74,10 @@
   import { csharp } from "@replit/codemirror-lang-csharp";
 
   import { GetKeywords } from "$lib/keywordsDB.svelte";
+
+  import { linter, lintGutter, type Diagnostic } from "@codemirror/lint";
+  import { syntaxTree } from "@codemirror/language";
+  import { showMinimap } from "@replit/codemirror-minimap";
 
   const themes = {
     light: {
@@ -182,7 +187,7 @@
     js: javascript,
     mjs: javascript,
     cjs: javascript,
-    ts: javascript,
+    ts: () => javascript({ typescript: true }),
 
     // FIX: jsx and tsx should use the javascript/typescript engine, not HTML
     jsx: () => javascript({ jsx: true }),
@@ -217,12 +222,12 @@
     phtml: php,
 
     // HTML & Templates
-    html: html,
-    htm: html,
-    xhtml: html,
-    svelte: html, // Fallback to HTML highlighting
-    vue: html, // Fallback to HTML highlighting
-    angular: html,
+    html: () => html({ autoCloseTags: true }),
+    htm: () => html({ autoCloseTags: true }),
+    xhtml: () => html({ autoCloseTags: true }),
+    svelte: () => html({ autoCloseTags: true }),
+    vue: () => html({ autoCloseTags: true }),
+    angular: () => html({ autoCloseTags: true }),
 
     // CSS & Styling
     css: css,
@@ -267,6 +272,71 @@
     return []; // Plain text fallback
   }
 
+  const RELIABLE_FOR_SYNTAX_LINT = new Set([
+    "js",
+    "mjs",
+    "cjs",
+    "ts",
+    "jsx",
+    "tsx",
+    "py",
+    "pyw",
+    "rs",
+    "json",
+    "css",
+    "scss",
+    "less",
+    "html",
+    "htm",
+    "xhtml",
+    "java",
+    "php",
+    "phtml",
+    "go",
+    "sql",
+    "yaml",
+    "yml",
+  ]);
+
+  const syntaxLinter = linter((view) => {
+    const ext = filename.split(".").pop()?.toLowerCase() || "";
+    if (!RELIABLE_FOR_SYNTAX_LINT.has(ext)) return [];
+
+    const diagnostics: Diagnostic[] = [];
+    syntaxTree(view.state).iterate({
+      enter: (node) => {
+        if (node.type.isError) {
+          diagnostics.push({
+            from: node.from,
+            to: node.to > node.from ? node.to : node.from + 1,
+            severity: "error",
+            message: "Syntax error",
+          });
+        }
+      },
+    });
+    return diagnostics;
+  });
+
+  const minimap = showMinimap.compute(["doc"], (state) => {
+    const gutterMarks: Record<number, string> = {};
+    syntaxTree(state).iterate({
+      enter: (node) => {
+        if (node.type.isError) {
+          const line = state.doc.lineAt(node.from).number;
+          gutterMarks[line] = "#e5484d";
+        }
+      },
+    });
+
+    return {
+      create: () => ({ dom: document.createElement("div") }),
+      displayText: "blocks",
+      showOverlay: "mouse-over",
+      gutters: [gutterMarks],
+    };
+  });
+
   onMount(() => {
     const updateListener = EditorView.updateListener.of((update) => {
       if (update.docChanged && onChange) {
@@ -289,9 +359,26 @@
       extensions: [
         basicSetup,
         baseTheme,
+        indentationMarkers({
+          highlightActiveBlock: true, // dims/highlights the guide for the block your cursor is in
+          hideFirstIndent: false, // if true, skips markers at the outermost indent level
+          markerType: "codeOnly", // "fullScope" runs lines to the end of the block; "codeOnly" stops at the last non-empty line
+          thickness: 1, // px width of normal markers
+          activeThickness: undefined, // px width of the active-block marker (falls back to `thickness`)
+          colors: {
+            light: "rgb(0,0,0, 0.07)",
+            dark: "rgb(255,255,255, .07)",
+            activeLight: "rgb(0,0,0, 0.2)",
+            activeDark: "rgb(255,255,255, .2)",
+          },
+        }),
         EditorView.lineWrapping,
+        EditorState.tabSize.of(2),
         indentUnit.of("  "),
         keymap.of([indentWithTab]),
+        // syntaxLinter,
+        // lintGutter(),
+        minimap,
 
         // 2. MASTER AUTOCOMPLETE ENGINE
         autocompletion({
@@ -433,6 +520,12 @@
 
   :global(.cm-editor) {
     height: 100%;
+  }
+
+  :global(.cm-scroller) {
+    &::-webkit-scrollbar {
+      display: none !important;
+    }
   }
 
   :global(.cm-editor.cm-focused) {

@@ -3,25 +3,56 @@ use std::{
     ffi::OsString,
     fs::{self, create_dir_all, read_dir, read_to_string, remove_file, File, OpenOptions},
     io::{BufRead, BufReader, BufWriter, Write},
+    os::windows::process::CommandExt,
     path::{Path, PathBuf},
     process::Command,
 };
 
-static cmd_start: [&str; 8] = [
+static cmd_start: [&str; 7] = [
     "/c",
     "start",
     "pwsh",
-    "-NoExit",
     "-NoProfile",
     "-ExecutionPolicy",
     "Bypass",
     "-Command",
 ];
 
+fn ps_quote(value: &str) -> String {
+    format!("'{}'", value.replace('\'', "''"))
+}
+
+fn ps_invoke(path: &str) -> String {
+    format!("& {}", ps_quote(path))
+}
+
+fn validate_path_part(value: &str, label: &str) -> Result<(), String> {
+    if value.contains('\0') || value.contains('\n') || value.contains('\r') {
+        return Err(format!("Invalid {}: contains control characters.", label));
+    }
+    Ok(())
+}
+
+const CLOSE_ON_KEYPRESS: &str = "Write-Host \"`nPress any key to close...\" -ForegroundColor DarkGray ; $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')";
+
+fn spawn_in_terminal(file_dir: &str, script: &str) -> Result<(), String> {
+    let full_script = format!("{} ; {}", script, CLOSE_ON_KEYPRESS);
+    Command::new("cmd")
+        .current_dir(file_dir)
+        .args(cmd_start)
+        .arg(full_script)
+        .spawn()
+        .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
 #[tauri::command]
 pub fn run_code(file: [&str; 2]) -> Result<(), String> {
     let file_dir = file[1]; // Directory (e.g., "C:/Users/HP/Documents/Dw")
     let file_name = file[0]; // Full filename (e.g., "app2.py")
+
+    validate_path_part(file_dir, "directory")?;
+    validate_path_part(file_name, "file name")?;
 
     // Safely extract the filename without its extension
     let path_obj = Path::new(file_name);
@@ -38,306 +69,204 @@ pub fn run_code(file: [&str; 2]) -> Result<(), String> {
         .unwrap_or_else(|| "".to_string());
 
     // We use cmd /c start to pop up a brand new, visible window.
-    // The "powershell" argument tells cmd to open PowerShell inside that new window.
+    // The "pwsh" argument tells cmd to open PowerShell inside that new window.
     // "-NoExit" is added so the window stays open after execution, letting you see the result/errors!
+
+    // Every filename/stem below is escaped with ps_quote (or invoked
+    // with ps_invoke) before it touches the command string — no raw
+    // interpolation left anywhere in this match.
+    let q_name = ps_quote(file_name);
+    let q_stem = ps_quote(file_name_without_ext);
+    let exe_name = format!("{}.exe", file_name_without_ext);
+    let jar_name = format!("{}.jar", file_name_without_ext);
 
     match ext.as_str() {
         // ─────────────────────────────────────────────
         // Scripting / interpreted languages
         // ─────────────────────────────────────────────
-        ".py" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!("python -u '{}'", file_name))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
-
-        ".js" | ".ts" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!("node '{}'", file_name))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
-
-        ".php" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!("php '{}'", file_name))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
-
-        ".rb" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!("ruby '{}'", file_name))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
-
-        ".lua" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!("lua '{}'", file_name))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
-
-        ".go" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!("go run '{}'", file_name))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
-
-        ".dart" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!("dart run '{}'", file_name))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        ".py" => spawn_in_terminal(file_dir, &format!("python -u {}", q_name))?,
+        ".js" | ".ts" => spawn_in_terminal(file_dir, &format!("node {}", q_name))?,
+        ".php" => spawn_in_terminal(file_dir, &format!("php {}", q_name))?,
+        ".rb" => spawn_in_terminal(file_dir, &format!("ruby {}", q_name))?,
+        ".lua" => spawn_in_terminal(file_dir, &format!("lua {}", q_name))?,
+        ".go" => spawn_in_terminal(file_dir, &format!("go run {}", q_name))?,
+        ".dart" => spawn_in_terminal(file_dir, &format!("dart run {}", q_name))?,
 
         // ─────────────────────────────────────────────
         // Java
         // ─────────────────────────────────────────────
-        ".java" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!(
-                    "javac '{}' ; java '{}'",
-                    file_name, file_name_without_ext
-                ))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        ".java" => spawn_in_terminal(file_dir, &format!("javac {} ; java {}", q_name, q_stem))?,
 
         // ─────────────────────────────────────────────
         // C
         // ─────────────────────────────────────────────
-        ".c" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!(
-                    "gcc '{}' -o '{}.exe' ; ./{}.exe",
-                    file_name, file_name_without_ext, file_name_without_ext
-                ))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        ".c" => spawn_in_terminal(
+            file_dir,
+            &format!(
+                "gcc {} -o {} ; {}",
+                q_name,
+                ps_quote(&exe_name),
+                ps_invoke(&format!("./{}", exe_name))
+            ),
+        )?,
 
         // ─────────────────────────────────────────────
         // C++
         // ─────────────────────────────────────────────
-        ".cpp" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!(
-                    "g++ '{}' -o '{}.exe' ; ./{}.exe",
-                    file_name, file_name_without_ext, file_name_without_ext
-                ))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        ".cpp" => spawn_in_terminal(
+            file_dir,
+            &format!(
+                "g++ {} -o {} ; {}",
+                q_name,
+                ps_quote(&exe_name),
+                ps_invoke(&format!("./{}", exe_name))
+            ),
+        )?,
 
         // ─────────────────────────────────────────────
         // C#
         // ─────────────────────────────────────────────
-        ".cs" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg("dotnet run")
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        // Note: this ignores `file_name` entirely, same as the original —
+        // `dotnet run` runs whatever project is in `file_dir`. Not a
+        // security issue (the string is a fixed literal), just a
+        // pre-existing behavior gap worth knowing about.
+        ".cs" => spawn_in_terminal(file_dir, "dotnet run")?,
 
         // ─────────────────────────────────────────────
         // Rust
         // ─────────────────────────────────────────────
-        ".rs" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!(
-                    "rustc '{}' -o '{}.exe' ; ./{}.exe",
-                    file_name, file_name_without_ext, file_name_without_ext
-                ))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        ".rs" => spawn_in_terminal(
+            file_dir,
+            &format!(
+                "rustc {} -o {} ; {}",
+                q_name,
+                ps_quote(&exe_name),
+                ps_invoke(&format!("./{}", exe_name))
+            ),
+        )?,
 
         // ─────────────────────────────────────────────
         // Kotlin
         // ─────────────────────────────────────────────
-        ".kt" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!(
-                    "kotlinc '{}' -include-runtime -d '{}.jar' ; java -jar '{}.jar'",
-                    file_name, file_name_without_ext, file_name_without_ext
-                ))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        ".kt" => spawn_in_terminal(
+            file_dir,
+            &format!(
+                "kotlinc {} -include-runtime -d {} ; java -jar {}",
+                q_name,
+                ps_quote(&jar_name),
+                ps_quote(&jar_name)
+            ),
+        )?,
 
         // ─────────────────────────────────────────────
         // Swift
         // ─────────────────────────────────────────────
-        ".swift" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!(
-                    "swiftc '{}' -o '{}.exe' ; '{}.exe'",
-                    file_name, file_name_without_ext, file_name_without_ext
-                ))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        ".swift" => spawn_in_terminal(
+            file_dir,
+            &format!(
+                "swiftc {} -o {} ; {}",
+                q_name,
+                ps_quote(&exe_name),
+                ps_invoke(&format!("./{}", exe_name))
+            ),
+        )?,
 
         // ─────────────────────────────────────────────
         // Zig
         // ─────────────────────────────────────────────
-        ".zig" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!("zig run '{}'", file_name))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        ".zig" => spawn_in_terminal(file_dir, &format!("zig run {}", q_name))?,
 
         // ─────────────────────────────────────────────
         // Bash / Shell
         // ─────────────────────────────────────────────
-        ".sh" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!("bash '{}'", file_name))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        ".sh" => spawn_in_terminal(file_dir, &format!("bash {}", q_name))?,
 
         // ─────────────────────────────────────────────
         // PowerShell
         // ─────────────────────────────────────────────
-        ".ps1" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!(
-                    "powershell -ExecutionPolicy Bypass -File '{}'",
-                    file_name
-                ))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        ".ps1" => spawn_in_terminal(
+            file_dir,
+            &format!("powershell -ExecutionPolicy Bypass -File {}", q_name),
+        )?,
 
         ".asm" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!(
-                    "nasm -f win64 {} -o {}.obj ; gcc {}.obj -o {}.exe; .\\{}.exe",
-                    file_name, file_name_without_ext, file_name_without_ext, file_name_without_ext, file_name_without_ext
-                ))
-                .spawn()
-                .map_err(|e| e.to_string())?;
+            let obj_name = format!("{}.obj", file_name_without_ext);
+            spawn_in_terminal(
+                file_dir,
+                &format!(
+                    "nasm -f win64 {} -o {} ; gcc {} -o {} ; {}",
+                    q_name,
+                    ps_quote(&obj_name),
+                    ps_quote(&obj_name),
+                    ps_quote(&exe_name),
+                    ps_invoke(&format!("./{}", exe_name))
+                ),
+            )?
         }
 
         // ─────────────────────────────────────────────
         // HTML
         // ─────────────────────────────────────────────
-        ".html" | ".htm" => {
-            Command::new("cmd")
-                .current_dir(file_dir)
-                .args(cmd_start)
-                .arg(format!("start '{}'", file_name))
-                .spawn()
-                .map_err(|e| e.to_string())?;
-        }
+        ".html" | ".htm" => spawn_in_terminal(file_dir, &format!("start {}", q_name))?,
 
         // ─────────────────────────────────────────────
         // SQL
         // ─────────────────────────────────────────────
         ".sql" => {
-            return Err("Les fichiers SQL nécessitent un moteur de base de données \
-             (SQLite, MySQL, PostgreSQL, etc.)."
-                .to_string());
+            return Err(
+                "SQL files require a database engine (SQLite, MySQL, PostgreSQL, etc.) and can't be run directly."
+                    .to_string(),
+            );
         }
 
         // ─────────────────────────────────────────────
         // Non-executable / data / markup languages
         // ─────────────────────────────────────────────
         ".css" => {
-            return Err("Les fichiers CSS ne sont pas exécutables seuls.".to_string());
+            return Err("CSS files aren't executable on their own.".to_string());
         }
 
         ".json" => {
-            return Err(
-                "Les fichiers JSON sont des fichiers de données, pas des programmes exécutables."
-                    .to_string(),
-            );
+            return Err("JSON files are data files, not executable programs.".to_string());
         }
 
         ".yaml" | ".yml" => {
             return Err(
-            "Les fichiers YAML sont des fichiers de configuration/données, pas des programmes exécutables."
-                .to_string()
-        );
+                "YAML files are configuration/data files, not executable programs.".to_string(),
+            );
         }
 
         ".toml" => {
-            return Err(
-            "Les fichiers TOML sont des fichiers de configuration, pas des programmes exécutables."
-                .to_string()
-        );
+            return Err("TOML files are configuration files, not executable programs.".to_string());
         }
 
         ".graphql" | ".gql" => {
-            return Err(
-                "Les fichiers GraphQL nécessitent un serveur/client GraphQL pour être exécutés."
-                    .to_string(),
-            );
+            return Err("GraphQL files require a GraphQL server/client to run.".to_string());
         }
 
         // ─────────────────────────────────────────────
-        // Algorithmique
+        // Pseudo-code
         // ─────────────────────────────────────────────
         ".algo" => {
-            return Err(
-                "Les algorithmes pseudo-code ne sont pas directement exécutables.".to_string(),
-            );
+            return Err("Pseudo-code algorithm files aren't directly executable.".to_string());
         }
 
         _ => {
-            return Err(format!("Extension '{}' non supportée.", ext));
+            return Err(format!("Extension '{}' is not supported.", ext));
         }
     }
     Ok(())
 }
 
 #[tauri::command]
-pub fn open_link(link: String) {
-    let cmd = Command::new("cmd")
-        .args(cmd_start)
-        .arg(format!("start {}", link))
-        .spawn()
-        .map_err(|e| e.to_string());
+pub fn open_link(link: String) -> Result<(), String> {
+    // Allow-list http(s) only — this command is meant for "open this URL
+    // in a browser," not "run an arbitrary command," so anything else is
+    // rejected outright rather than trusted to ps_quote alone.
+    if !(link.starts_with("http://") || link.starts_with("https://")) {
+        return Err("Only http:// or https:// links can be opened.".to_string());
+    }
+    validate_path_part(&link, "link")?;
+
+    spawn_in_terminal(".", &format!("start {}", ps_quote(&link)))
 }

@@ -13,6 +13,8 @@
     appTheme,
     Update,
     editorViewStyle,
+    closeToTray,
+    toggleCloseToTray,
   } from "$lib/utils.svelte";
   import { cpp } from "@codemirror/lang-cpp";
   import type { HtmlTagDescriptor } from "vite";
@@ -207,7 +209,7 @@
       await invoke("add_file", { file: file, createNew: true });
       await GetFiles();
       activeId = Object.entries(files)[Object.entries(files).length - 1][0];
-      ScrollIntoFile()
+      ScrollIntoFile();
     } catch (e) {
       console.error("Error opening file:", e);
       await message("File already exists", {
@@ -246,7 +248,7 @@
         await GetFiles();
 
         activeId = Object.entries(files)[Object.entries(files).length - 1][0];
-        ScrollIntoFile()
+        ScrollIntoFile();
       }
     } catch (error) {
       alert(error);
@@ -354,16 +356,12 @@
       ReadFromFile();
     }
 
-    log(Object.entries(structuredFiles));
-
     lang = document.querySelector(
       `.codemirror-wrapper[data-id='${e.currentTarget.dataset.id}'] .cm-content`,
     );
     if (lang) {
       lang = lang.dataset.language;
     }
-
-    // log(e.currentTarget.dataset.id);
   }
 
   async function SaveFile(ind?: number) {
@@ -613,8 +611,15 @@
         );
 
         if (confirmClose) {
-          await appWindow.destroy();
+          if (closeToTray.current) {
+            await appWindow.hide();
+          } else {
+            await appWindow.destroy();
+          }
         }
+      } else if (closeToTray.current) {
+        e.preventDefault();
+        await appWindow.hide();
       }
     });
   }
@@ -903,7 +908,11 @@
             </div>
           </div>
           <div class="fileInfo">
-            <small>{activeFile ? activeFile[0] : ""}</small>
+            <small
+              >{activeFile[1] != undefined && activeFile[1] != undefined
+                ? activeFile[0]
+                : ""}</small
+            >
           </div>
           <div class="controls">
             <button id="runCode" class="baseBtn" onclick={RunCode}
@@ -1064,9 +1073,10 @@
                               // onclick={(e) => HandleFileClick(e, id)}
                               onclick={(e) =>
                                 HandleFileClick(e, Array.from(file_name)[1])}
-                              title={`${file_obj.path}\\${Array.from(file_name)[1]}`}
                             >
-                              <span>
+                              <span
+                                title={`${file_obj.path}\\${Array.from(file_name)[1]}`}
+                              >
                                 {Array.from(file_name)[1]}
                               </span>
                             </button>
@@ -1120,7 +1130,7 @@
               class="editCnt"
               class:visible={parametres.settingsMenu}
             >
-              <nav id="themeSelection" class="defaultSettNav">
+              <nav id="themeSelection" class="defaultSettNav hide">
                 <button
                   class="baseBtn headerSetNav"
                   onclick={(e) => {
@@ -1181,7 +1191,7 @@
                   </ul>
                 </div>
               </nav>
-              <nav id="editorSelection" class="defaultSettNav">
+              <nav id="editorSelection" class="defaultSettNav hide">
                 <button
                   class="baseBtn headerSetNav"
                   onclick={(e) => {
@@ -1231,6 +1241,51 @@
                           editorViewStyle.setFontSize(
                             Number(e.currentTarget.value),
                           )}
+                      />
+                    </li>
+                  </ul>
+                </div>
+              </nav>
+              <nav class="defaultSettNav hide">
+                <button
+                  class="baseBtn headerSetNav"
+                  onclick={(e) => {
+                    e.currentTarget.parentElement?.classList.toggle("hide");
+                  }}
+                >
+                  <h3>App Settings</h3>
+                  <svg
+                    width="14px"
+                    height="14px"
+                    viewBox="0 0 24 24"
+                    style="fill: none !important;"
+                    xmlns="http://www.w3.org/2000/svg"
+                    ><g id="SVGRepo_bgCarrier" stroke-width="0"></g><g
+                      id="SVGRepo_tracerCarrier"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></g><g id="SVGRepo_iconCarrier">
+                      <path
+                        fill-rule="evenodd"
+                        clip-rule="evenodd"
+                        d="M12 7C12.2652 7 12.5196 7.10536 12.7071 7.29289L19.7071 14.2929C20.0976 14.6834 20.0976 15.3166 19.7071 15.7071C19.3166 16.0976 18.6834 16.0976 18.2929 15.7071L12 9.41421L5.70711 15.7071C5.31658 16.0976 4.68342 16.0976 4.29289 15.7071C3.90237 15.3166 3.90237 14.6834 4.29289 14.2929L11.2929 7.29289C11.4804 7.10536 11.7348 7 12 7Z"
+                        fill="#000000"
+                      ></path>
+                    </g></svg
+                  >
+                </button>
+                <div class="selfList">
+                  <ul>
+                    <li>
+                      <label for="minimize" style="flex: 1;"
+                        >Minimize on tray</label
+                      >
+                      <input
+                        type="checkbox"
+                        id="minimize"
+                        checked={Boolean(closeToTray.current)}
+                        oninput={(v) =>
+                          toggleCloseToTray(Boolean(v.currentTarget.checked))}
                       />
                     </li>
                   </ul>
@@ -1346,7 +1401,6 @@
                       class:activeElem={lastFiles_activeElem == id}
                       onmouseover={() => (lastFiles_activeElem = id)}
                       onfocus={() => {}}
-                      title={lastActiveFile}
                     >
                       <div class="fileIcon baseBtn">
                         {#if ICONS[`${lastActiveFile.substring(lastActiveFile.lastIndexOf(".") + 1)}`]}
@@ -1382,7 +1436,7 @@
                           >
                         {/if}
                       </div>
-                      <span>
+                      <span title={lastActiveFile}>
                         {lastActiveFile}
                       </span>
                     </button>
@@ -1399,7 +1453,7 @@
     <div class="details">
       <div class="elem">
         <small
-          >{activeFile != undefined
+          >{activeFile[1] != undefined && activeFile[1] != undefined
             ? activeFile[1] + "\\" + activeFile[0]
             : ""}</small
         >

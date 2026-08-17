@@ -21,6 +21,12 @@ pub struct FromFile {
 
 type FileMap = IndexMap<String, String>;
 
+static SUPPORTED_LANGUAGES: &[&str] = &[
+    "algo", "asm", "c", "cpp", "cs", "css", "dart", "go", "gql", "graphql", "htm", "html", "java",
+    "js", "json", "kt", "lua", "php", "ps1", "py", "rb", "rs", "sh", "sql", "swift", "toml", "ts",
+    "yaml", "yml", "zig",
+];
+
 fn get_config_path(app: &AppHandle, config_file: &str) -> Result<PathBuf, String> {
     let mut path = app.path().app_data_dir().map_err(|e| e.to_string())?;
     // Ensure directory exists on disk (e.g. AppData/Roaming/your-app/)
@@ -46,15 +52,25 @@ pub fn open_dir(app: AppHandle, path: String) -> Result<(), String> {
     let entries = read_dir(target_path).map_err(|e| e.to_string())?;
     for entry in entries {
         let entry = entry.map_err(|e| e.to_string())?;
+
+        if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
+            continue;
+        }
+
         let file_name = entry.file_name();
         let file_path = Path::new(&path);
-        let file = FromFile {
-            name: file_name.to_string_lossy().into_owned(),
-            path: file_path.to_string_lossy().into_owned(),
-        };
 
-        // println!("FILE: {} | PATH: {}", file.name, file.path);
-        add_file(app.clone(), file, false);
+        if let Some(ext) = file_path.join(&file_name).extension().and_then(|e| e.to_str()) {
+            if SUPPORTED_LANGUAGES.contains(&ext) {
+                let file = FromFile {
+                    name: file_name.to_string_lossy().into_owned(),
+                    path: file_path.to_string_lossy().into_owned(),
+                };
+                add_file(app.clone(), file, false);
+            }
+        }
+
+        // println!("FILE: {} | EXT: {:?}", file.name, file_path.join(&file.name).extension());
     }
 
     Ok(())

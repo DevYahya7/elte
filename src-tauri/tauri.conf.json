@@ -1,8 +1,9 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Awesome Code Editor",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "identifier": "AwesomeCodeEditor",
+  "mainBinaryName": "Ace",
   "build": {
     "frontendDist": "../build",
     "devUrl": "http://localhost:9975",

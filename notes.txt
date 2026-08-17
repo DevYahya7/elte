@@ -8,6 +8,8 @@ add search for file Ctrl P
 
 find if file exists before adding it
 
+add rename files
+
 // FIXES
 
 massive autocomplete support for dozens of langauges

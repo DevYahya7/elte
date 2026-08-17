@@ -89,8 +89,7 @@ export function Update() {
     let div = document.querySelector(".ͼ1");
     if (div)
       document.body.style.setProperty("--bg", localStorage.getItem("bg") ?? "");
-    else
-      document.body.style.setProperty("--bg", "");
+    else document.body.style.setProperty("--bg", "");
 
     if (div) {
       let getBg = getComputedStyle(div).backgroundColor;
@@ -110,4 +109,15 @@ export function Update() {
     localStorage.setItem("fontSize", String(editorViewStyle.fontSize));
     localStorage.setItem("fontFamily", String(editorViewStyle.fontFamily));
   });
+}
+
+export const closeToTray = $state({
+  current: localStorage.getItem("closeToTray")
+    ? localStorage.getItem("closeToTray") === "true"
+    : true, // default off
+});
+
+export function toggleCloseToTray(val: boolean) {
+  closeToTray.current = val;
+  localStorage.setItem("closeToTray", String(closeToTray.current));
 }

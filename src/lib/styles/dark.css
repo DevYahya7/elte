@@ -8,8 +8,14 @@ body[data-theme="dark"] {
   }
 
   --df: #f78166;
-  --bg: rgb(13, 17, 23);
+  /* --bg: rgb(13, 17, 23); */
+  --bg: rgb(15, 15, 15);
   --overlay: rgb(0, 0, 0, 0.04);
+  --blurredBg: rgb(255, 255, 255, 0.01);
+  --blurredBgHovers: rgb(255, 255, 255, 0.1);
+  --borderColor: rgb(255, 255, 255, 0.1);
+  --editorUl: rgb(240, 240, 240);
+  --itemActive: rgb(255, 255, 255, 0.1);
 
   background: var(--bg);
   color: white;
@@ -57,11 +63,6 @@ body[data-theme="dark"] {
     }
   }
 
-  .active {
-    /* background: rgb(38, 44, 54); */
-    background: rgb(255, 255, 255, 0.2);
-  }
-
   /* main */
   .editor {
     main {
@@ -92,15 +93,6 @@ body[data-theme="dark"] {
           svg * {
             stroke: white;
           }
-          &:hover {
-            background: rgb(255, 255, 255, 0.2);
-          }
-        }
-      }
-
-      .filesTree_PATH {
-        &::before {
-          background: rgb(255, 255, 255, 0.2);
         }
       }
 
@@ -116,27 +108,6 @@ body[data-theme="dark"] {
         button {
           background: transparent;
         }
-      }
-
-      .lastActiveDialog {
-        background: rgb(255, 255, 255, 0.01);
-
-        button.ite {
-          &:hover {
-            background: rgb(255, 255, 255, 0.1);
-          }
-
-          &.activeElem {
-            background: rgb(255, 255, 255, 0.1);
-          }
-        }
-      }
-
-      .editCnt {
-        border-right-color: rgb(255, 255, 255, 0.1);
-      }
-      nav {
-        border-bottom-color: rgb(255, 255, 255, 0.1);
       }
 
       textarea {

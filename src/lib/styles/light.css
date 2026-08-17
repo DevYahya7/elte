@@ -10,6 +10,11 @@ body[data-theme="light"] {
   --df: rgb(255, 101, 70);
   --bg: rgb(255, 255, 255);
   --overlay: rgb(0, 0, 0, 0.04);
+  --blurredBg: rgb(0, 0, 0, 0.03);
+  --blurredBgHovers: rgb(0, 0, 0, 0.08);
+  --borderColor: rgb(0, 0, 0, 0.1);
+  --editorUl: rgb(240, 240, 240);
+  --itemActive: rgb(0, 0, 0, 0.07);
 
   background: var(--bg);
 
@@ -51,9 +56,6 @@ body[data-theme="light"] {
     }
   }
 
-  .active {
-    background: rgb(0, 0, 0, 0.07);
-  }
 
   /* main */
   .editor {
@@ -72,20 +74,11 @@ body[data-theme="light"] {
 
       ul#filesTree {
         li {
-          &:hover {
-            background: rgb(0, 0, 0, 0.07);
-          }
           .unsaved {
             &::before {
               background: #231a00;
             }
           }
-        }
-      }
-
-      .filesTree_PATH {
-        &::before {
-          background: rgb(0, 0, 0, 0.2);
         }
       }
 
@@ -101,27 +94,6 @@ body[data-theme="light"] {
         button {
           background: transparent;
         }
-      }
-
-      .lastActiveDialog {
-        background: rgb(0, 0, 0, 0.03);
-
-        button.ite {
-          &:hover {
-            background: rgb(0, 0, 0, .08);
-          }
-
-          &.activeElem {
-            background: rgb(0, 0, 0, .08);
-          }
-        }
-      }
-
-      .editCnt {
-        border-right-color: rgb(0, 0, 0, 0.1);
-      }
-      nav {
-        border-bottom-color: rgb(0, 0, 0, 0.1);
       }
 
       textarea {
